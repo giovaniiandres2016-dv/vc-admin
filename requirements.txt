@@ -6,3 +6,4 @@ httpx
 pandas
 openpyxl
 pydantic
+itsdangerous
