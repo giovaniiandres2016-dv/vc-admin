@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./vc_admin.db")
+DATABASE_URL = os.getenv("DATABASE_URL") or "sqlite:///./vc_admin.db"
 
 # Ajuste para PostgreSQL en producción si aplica
 if DATABASE_URL.startswith("postgres://"):
