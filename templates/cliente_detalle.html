@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}VC ATELIER - Perfil de Cliente{% endblock %}
+
+{% block content %}
+<a href="/clientes" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem;">← Volver al Listado</a>
+
+<div class="page-header" style="margin-top: 12px;">
+    <div>
+        <h2 style="color: #FFFFFF; font-weight: 600;">{{ cliente.nombre }}</h2>
+        <p style="color: #D4AF37; font-size: 0.85rem;">Documento: {{ cliente.documento or 'No registrado' }}</p>
+    </div>
+    
+    <div>
+        <a href="/ventas/nueva?cliente_id={{ cliente.id }}" class="btn-gold" style="text-decoration: none; padding: 10px 16px; display: inline-block;">
+            + Registrar Venta a este Cliente
+        </a>
+    </div>
+</div>
+
+<div class="venta-grid" style="margin-bottom: 24px;">
+    <!-- INFORMACIÓN PERSONAL -->
+    <div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+        <h3 style="color: #FFF; font-size: 0.95rem; margin-bottom: 16px; border-bottom: 1px solid #1E2638; padding-bottom: 8px;">Información de Contacto</h3>
+        <p style="color: #94A3B8; font-size: 0.85rem; margin-bottom: 8px;"><strong style="color: #FFF;">Teléfono:</strong> {{ cliente.telefono or 'N/A' }}</p>
+        <p style="color: #94A3B8; font-size: 0.85rem; margin-bottom: 8px;"><strong style="color: #FFF;">Email:</strong> {{ cliente.email or 'N/A' }}</p>
+        <p style="color: #94A3B8; font-size: 0.85rem; margin-bottom: 8px;"><strong style="color: #FFF;">Ciudad:</strong> {{ cliente.ciudad or 'N/A' }}</p>
+        <p style="color: #94A3B8; font-size: 0.85rem; margin-bottom: 8px;"><strong style="color: #FFF;">Dirección:</strong> {{ cliente.direccion or 'N/A' }}</p>
+        <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 12px;"><strong style="color: #FFF;">Notas:</strong> {{ cliente.notas or 'Sin observaciones' }}</p>
+    </div>
+
+    <!-- RESUMEN DE COMPRAS -->
+    <div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: center; text-align: center;">
+        <span style="color: #94A3B8; font-size: 0.75rem; text-transform: uppercase;">Total Histórico Comprado</span>
+        <h1 style="color: #D4AF37; font-size: 2.2rem; margin: 8px 0;">${{ "%.2f"|format(total_historico or 0) }}</h1>
+        <p style="color: #64748B; font-size: 0.8rem;">{{ historial_ventas|length }} transacción(es) realizada(s)</p>
+    </div>
+</div>
+
+<!-- HISTORIAL DE COMPRAS -->
+<h3 style="color: #FFF; font-size: 1rem; margin-bottom: 12px;">Historial de Compras</h3>
+<div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; overflow: hidden;">
+    <div class="table-responsive">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; color: #E2E8F0; font-size: 0.85rem; min-width: 500px;">
+            <thead>
+                <tr style="background-color: #171D28; border-bottom: 1px solid #1E2638; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem;">
+                    <th style="padding: 12px;">ID Venta</th>
+                    <th style="padding: 12px;">Fecha</th>
+                    <th style="padding: 12px;">Método Pago</th>
+                    <th style="padding: 12px;">Estado</th>
+                    <th style="padding: 12px; text-align: right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in historial_ventas %}
+                <tr style="border-bottom: 1px solid #1E2638;">
+                    <td style="padding: 12px;">#{{ v.id }}</td>
+                    <td style="padding: 12px;">{{ v.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td style="padding: 12px;">{{ v.metodo_pago }}</td>
+                    <td style="padding: 12px;">
+                        {% if v.estado == 'COMPLETADA' %}
+                            <span style="color: #4ADE80;">Completada</span>
+                        {% else %}
+                            <span style="color: #F87171;">{{ v.estado }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #FFF;">${{ "%.2f"|format(v.total) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="padding: 16px; text-align: center; color: #64748B;">Este cliente aún no registra compras.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

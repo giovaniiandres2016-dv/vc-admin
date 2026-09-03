@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}VC ATELIER - Panel de Control{% endblock %}
+
+{% block content %}
+<!-- ALERTA PUSH AL INICIAR SESIÓN (SI STOCK < 2) -->
+{% if alerta_push %}
+<div id="push-alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; background: linear-gradient(135deg, #2c1a1a 0%, #1a1111 100%); border: 1px solid #e53e3e; color: #fff; padding: 16px 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 15px; animation: slideIn 0.5s ease-out;">
+    <div style="font-size: 1.5rem;">🔔</div>
+    <div>
+        <h4 style="margin: 0 0 4px 0; color: #feb2b2; font-size: 0.95rem;">Alerta de Inventario</h4>
+        <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1;">{{ alerta_push }}</p>
+    </div>
+    <button onclick="document.getElementById('push-alert').style.display='none'" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; margin-left: 10px;">&times;</button>
+</div>
+
+<style>
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+</style>
+{% endif %}
+
+<!-- HEADER Y SELECTOR DE MES -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="color: #FFFFFF; font-weight: 600; font-size: 1.5rem; margin: 0;">Panel de Control</h2>
+        <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 4px;">Bienvenido de nuevo, {{ user.nombre|capitalize }}</p>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <!-- Selector de Mes -->
+        <form method="get" action="/" style="display: flex; align-items: center; gap: 8px;">
+            <label for="mes" style="color: #94A3B8; font-size: 0.8rem; font-weight: 600;">Período:</label>
+            <input type="month" id="mes" name="mes" value="{{ mes_actual }}" onchange="this.form.submit()" 
+                   style="background: #11151C; border: 1px solid #283245; color: #FFFFFF; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">
+        </form>
+
+        <a href="/ventas/nueva" class="btn-gold" style="text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
+            + Registrar Nueva Venta
+        </a>
+    </div>
+</div>
+
+<!-- TARJETAS ANALÍTICAS (KPIs MENSUALES) -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    
+    <!-- Ingresos Totales -->
+    <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+        <span style="color: #94A3B8; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Ingresos del Mes</span>
+        <h3 style="color: #FFFFFF; font-size: 1.5rem; font-weight: 700; margin: 8px 0 0 0;">${{ "{:,.0f}".format(ingresos_totales) }}</h3>
+    </div>
+
+    <!-- Ganancia Neta -->
+    <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+        <span style="color: #60A5FA; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Ganancia Neta (Mensual)</span>
+        <h3 style="color: #60A5FA; font-size: 1.5rem; font-weight: 700; margin: 8px 0 0 0;">${{ "{:,.0f}".format(ganancia_neta) }}</h3>
+    </div>
+
+    <!-- Margen de Rentabilidad -->
+    <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+        <span style="color: #D4AF37; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Margen Promedio</span>
+        <h3 style="color: #D4AF37; font-size: 1.5rem; font-weight: 700; margin: 8px 0 0 0;">{{ "%.1f"|format(margen_porcentaje) }}%</h3>
+    </div>
+
+    <!-- Ventas Concretadas -->
+    <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+        <span style="color: #34D399; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Ventas Completadas</span>
+        <h3 style="color: #34D399; font-size: 1.5rem; font-weight: 700; margin: 8px 0 0 0;">{{ total_ventas_count }}</h3>
+    </div>
+
+</div>
+
+<!-- SECCIÓN DE ACTIVIDAD RECIENTE Y ACCESOS RÁPIDOS -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start;">
+    
+    <!-- Últimas Ventas Feed -->
+    <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+        <h4 style="color: #FFFFFF; font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid #1E2638; padding-bottom: 8px;">Actividad Comercial del Período</h4>
+        {% if ultimas_ventas %}
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            {% for v in ultimas_ventas %}
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #171D28; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem;">
+                <div>
+                    <span style="color: #D4AF37; font-weight: 600;">#{{ v.id }}</span>
+                    <span style="color: #94A3B8; margin-left: 8px;">{{ v.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+                <div style="text-align: right;">
+                    <span style="color: #FFFFFF; font-weight: 600;">${{ "{:,.0f}".format(v.total) }}</span>
+                    <span style="background: #065F46; color: #34D399; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">{{ v.metodo_pago }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color: #94A3B8; font-size: 0.85rem; text-align: center; padding: 20px 0;">No hay ventas completadas registradas en este mes.</p>
+        {% endif %}
+    </div>
+
+    <!-- Panel de Accesos Rápidos -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+            <h4 style="color: #FFFFFF; font-size: 0.95rem; font-weight: 600; margin-bottom: 12px;">Acciones Rápidas</h4>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <a href="/ventas/nueva" style="background: #171D28; border: 1px solid #283245; color: #E2E8F0; padding: 10px 12px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; text-align: center;">🛒 Nueva Venta Express</a>
+                <a href="/ventas" style="background: #171D28; border: 1px solid #283245; color: #E2E8F0; padding: 10px 12px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; text-align: center;">📜 Consultar Ventas</a>
+                {% if user.rol == 'ADMIN' %}
+                <a href="/ventas/anulaciones" style="background: #171D28; border: 1px solid #283245; color: #FACC15; padding: 10px 12px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; text-align: center;">⚠️ Procesar Solicitudes de Anulación</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

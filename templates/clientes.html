@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}VC ATELIER - Clientes{% endblock %}
+
+{% block extra_head %}
+<!-- Estilos de DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 style="color: #FFFFFF; font-weight: 600; font-size: 1.5rem;">Gestión de Clientes</h2>
+        <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 4px;">Directorio y fidelización de compradores</p>
+    </div>
+    
+    <div>
+        <a href="/clientes/nuevo" class="btn-gold" style="text-decoration: none; padding: 10px 18px; display: inline-block;">
+            + Registrar Cliente
+        </a>
+    </div>
+</div>
+
+<!-- TABLA DE CLIENTES CON DATATABLES -->
+<div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 16px;">
+    <div class="table-responsive">
+        <table id="tablaClientes" class="display" style="width: 100%; color: #E2E8F0; font-size: 0.85rem;">
+            <thead>
+                <tr style="background-color: #171D28; border-bottom: 1px solid #1E2638; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">
+                    <th style="padding: 14px;">Cliente</th>
+                    <th style="padding: 14px;">Documento</th>
+                    <th style="padding: 14px;">Contacto</th>
+                    <th style="padding: 14px;">Ciudad</th>
+                    <th style="padding: 14px; text-align: center;">Compras</th>
+                    <th style="padding: 14px; text-align: right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in clientes %}
+                <tr style="border-bottom: 1px solid #1E2638;">
+                    <td style="padding: 14px;">
+                        <span style="font-weight: 600; color: #FFFFFF; display: block;">{{ c.nombre }}</span>
+                        {% if c.email %}
+                        <span style="color: #64748B; font-size: 0.75rem;">{{ c.email }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 14px; color: #94A3B8;">{{ c.documento or 'N/A' }}</td>
+                    <td style="padding: 14px; color: #94A3B8;">{{ c.telefono or 'N/A' }}</td>
+                    <td style="padding: 14px; color: #94A3B8;">{{ c.ciudad or 'N/A' }}</td>
+                    <td style="padding: 14px; text-align: center;">
+                        <span style="background: rgba(212, 175, 55, 0.1); color: #D4AF37; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                            {{ c.total_compras or 0 }}
+                        </span>
+                    </td>
+                    <td style="padding: 14px; text-align: right;">
+                        <a href="/clientes/{{ c.id }}" style="color: #3B82F6; text-decoration: none; font-size: 0.8rem; margin-right: 8px;">Ver Perfil</a>
+                        <a href="/clientes/{{ c.id }}/editar" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem;">Editar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- jQuery y JS de DataTables -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#tablaClientes').DataTable({
+            "pageLength": 10,
+            "language": {
+                "lengthMenu": "Mostrar _MENU_ registros por página",
+                "zeroRecords": "No se encontraron clientes",
+                "info": "Mostrando página _PAGE_ de _PAGES_",
+                "infoEmpty": "No hay registros disponibles",
+                "infoFiltered": "(filtrado de _MAX_ registros totales)",
+                "search": "Buscador en tiempo real:",
+                "paginate": {
+                    "first": "Primero",
+                    "last": "Último",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

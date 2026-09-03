@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Factura #{{ venta.id }}</title>
+    <style>
+        /* Estilos generales para pantalla (vista previa) */
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            color: #000;
+            background: #eee;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .ticket-container {
+            width: 74mm; /* Ancho optimizado para papel de 80mm */
+            max-width: 80mm;
+            margin: 0 auto; /* Centrado en pantalla */
+            background: #fff;
+            padding: 12px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.15);
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .line {
+            border-top: 1px dashed #000;
+            margin: 10px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 4px 0;
+            text-align: left;
+        }
+
+        th {
+            border-bottom: 1px solid #000;
+            font-size: 13px;
+        }
+
+        .totales {
+            margin-top: 12px;
+        }
+
+        .acciones {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn-imprimir {
+            background-color: #000;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .btn-imprimir:hover {
+            background-color: #333;
+        }
+
+        /* CONFIGURACIÓN EXCLUSIVA PARA LA IMPRESIÓN TÉRMICA (Jaltech 80mm) */
+        @media print {
+            @page {
+                size: 80mm auto; /* Fuerza el ancho del rollo de 80mm */
+                margin: 0;       /* Elimina márgenes del navegador */
+            }
+
+            body {
+                background: #fff;
+                margin: 0;
+                padding: 0;
+            }
+
+            .ticket-container {
+                width: 100%;
+                margin: 0 auto;
+                padding: 0 2mm;
+                box-shadow: none;
+            }
+
+            /* Ocultar elementos que no van en el tiquete */
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ticket-container">
+        <!-- Encabezado del Negocio: Atelier VC -->
+        <div class="text-center">
+            <h1 style="margin: 0 0 5px 0; font-size: 22px; letter-spacing: 1px;">ATELIER VC</h1>
+            <p style="margin: 2px 0; font-size: 12px;">NIT: 1152215510</p>
+            <p style="margin: 2px 0; font-size: 12px;">Cra 34 #96-19 Manrique San Pablo</p>
+            <p style="margin: 2px 0; font-size: 12px;">WhatsApp: 321 642 4294 / 304 625 4969</p>
+            <p style="margin: 2px 0; font-size: 12px;">Instagram: @atelier_vc24</p>
+        </div>
+
+        <div class="line"></div>
+
+        <!-- Información de la Venta -->
+        <div style="font-size: 13px;">
+            <p style="margin: 3px 0;"><strong>Factura N°:</strong> #{{ venta.id }}</p>
+            <p style="margin: 3px 0;"><strong>Fecha:</strong> {{ venta.fecha_venta.strftime('%d/%m/%Y %H:%M') }}</p>
+            <p style="margin: 3px 0;"><strong>Cliente:</strong> {{ venta.cliente.nombre if venta.cliente else 'Cliente General' }}</p>
+            <p style="margin: 3px 0;"><strong>Método de Pago:</strong> {{ venta.metodo_pago }}</p>
+        </div>
+
+        <div class="line"></div>
+
+        <!-- Tabla de Productos -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Cant / Prod</th>
+                    <th class="text-right">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detalle in venta.detalles %}
+                <tr>
+                    <td colspan="2" style="padding-top: 6px; font-weight: bold; font-size: 14px;">{{ detalle.producto.nombre }}</td>
+                </tr>
+                <tr>
+                    <td style="font-size: 13px;">{{ detalle.cantidad }} x ${{ "{:,.0f}".format(detalle.precio_unitario) }}</td>
+                    <td class="text-right" style="font-size: 13px;">${{ "{:,.0f}".format(detalle.subtotal) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="line"></div>
+
+        <!-- Totales -->
+        <div class="totales text-center">
+            <span style="font-size: 13px; font-weight: bold;">TOTAL A PAGAR</span>
+            <div style="font-size: 20px; font-weight: bold; margin-top: 4px;">
+                ${{ "{:,.0f}".format(venta.total) }} COP
+            </div>
+        </div>
+
+        <div class="line"></div>
+
+        <!-- Pie de página del tiquete -->
+        <div class="text-center" style="font-size: 12px; margin-top: 12px;">
+            <p style="margin: 3px 0;">¡Gracias por tu compra!</p>
+            <p style="margin: 3px 0;">Conserva este tiquete para cambios o garantías.</p>
+        </div>
+    </div>
+
+    <!-- Botones de acción (Se ocultan automáticamente al imprimir) -->
+    <div class="acciones no-print">
+        <button class="btn-imprimir" onclick="window.print()">🖨️ Imprimir Tiquete</button>
+        <br><br>
+        <a href="/ventas" style="color: #000; text-decoration: none; font-size: 14px;">← Volver a Ventas</a>
+    </div>
+
+</body>
+</html>

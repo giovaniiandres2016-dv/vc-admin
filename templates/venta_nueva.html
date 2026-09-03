@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}VC ATELIER - Registrar Venta{% endblock %}
+
+{% block extra_head %}
+<style>
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .modal.active { display: flex; }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="/ventas" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem;">← Cancelar y Volver</a>
+<h2 style="color: #FFFFFF; font-weight: 600; margin-top: 8px; margin-bottom: 20px;">Registrar Nueva Venta</h2>
+
+<form action="/ventas/guardar" method="POST" id="ventaForm">
+    <div class="venta-grid">
+        
+        <!-- Lado Izquierdo: Selección de Cliente y Productos -->
+        <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+            
+            <!-- Selección Cliente -->
+            <div style="margin-bottom: 20px;">
+                <label style="color: #94A3B8; font-size: 0.75rem; font-weight: 600;">CLIENTE</label>
+                <div class="flex-row-responsive" style="margin-top: 6px;">
+                    <select name="cliente_id" id="clienteSelect" style="flex: 1; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px; border-radius: 6px;">
+                        <option value="0">-- Cliente Ocasional / Anónimo --</option>
+                        {% for c in clientes %}
+                        <option value="{{ c.id }}">{{ c.nombre }} {% if c.documento %}({{ c.documento }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" onclick="abrirModalCliente()" class="btn-gold" style="width: auto; padding: 10px 14px;">+ NUEVO CLIENTE</button>
+                </div>
+            </div>
+
+            <!-- Selector de Productos -->
+            <h3 style="color: #FFF; font-size: 0.9rem; margin-bottom: 10px;">Añadir Productos</h3>
+            <div class="flex-row-responsive" style="margin-bottom: 15px;">
+                <select id="productoSelect" style="flex: 1; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px; border-radius: 6px;">
+                    <option value="">-- Seleccionar Producto --</option>
+                    {% for p in productos %}
+                    <option value="{{ p.id }}" data-precio="{{ p.precio }}" data-nombre="{{ p.nombre }}" data-stock="{{ p.stock }}">
+                        {{ p.nombre }} - ${{ "{:,.0f}".format(p.precio).replace(',', '.') }} (Stock: {{ p.stock }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="button" onclick="agregarProducto()" class="btn-gold" style="width: auto; padding: 10px 14px;">AGREGAR</button>
+            </div>
+
+            <!-- Tabla de Items de la Venta Responsiva -->
+            <div class="table-responsive">
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 450px;" id="tablaItems">
+                    <thead>
+                        <tr style="color: #94A3B8; font-size: 0.7rem; text-transform: uppercase; border-bottom: 1px solid #1E2638; text-align: left;">
+                            <th style="padding: 8px;">PRODUCTO</th>
+                            <th style="padding: 8px;">PRECIO</th>
+                            <th style="padding: 8px;">CANT.</th>
+                            <th style="padding: 8px;">SUBTOTAL</th>
+                            <th style="padding: 8px; text-align: right;">ACCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                        <!-- Filas agregadas dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Lado Derecho: Resumen y Pago -->
+        <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <h3 style="color: #FFF; font-size: 1rem; margin-bottom: 15px;">Resumen</h3>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="color: #94A3B8; font-size: 0.75rem; font-weight: 600;">MÉTODO DE PAGO</label>
+                    <select name="metodo_pago" required style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px; border-radius: 6px; margin-top: 6px;">
+                        <option value="EFECTIVO">Efectivo</option>
+                        <option value="NEQUI">Nequi / Daviplata</option>
+                        <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+                        <option value="TARJETA">Tarjeta Débito/Crédito</option>
+                    </select>
+                </div>
+
+                <div style="background: #171D28; padding: 15px; border-radius: 6px; text-align: center; margin-top: 20px;">
+                    <span style="color: #94A3B8; font-size: 0.75rem;">TOTAL A PAGAR</span>
+                    <h1 style="color: #D4AF37; font-size: 2rem; margin-top: 4px;" id="totalDisplay">$0</h1>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-gold" style="margin-top: 20px;">COMPLETAR VENTA</button>
+        </div>
+    </div>
+</form>
+
+<!-- MODAL REGISTRO RÁPIDO DE CLIENTE -->
+<div class="modal" id="modalCliente">
+    <div class="login-box" style="text-align: left; max-width: 400px; background: #11151C; border: 1px solid #1E2638; padding: 24px; border-radius: 8px;">
+        <h3 style="color: #FFF; margin-bottom: 15px; text-align: center;">Registro Rápido de Cliente</h3>
+        <form id="formClienteRapido">
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="color: #94A3B8; font-size: 0.75rem;">NOMBRE COMPLETO *</label>
+                <input type="text" id="c_nombre" required placeholder="Ej. Carlos Pérez" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px; border-radius: 4px; margin-top: 4px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="color: #94A3B8; font-size: 0.75rem;">DOCUMENTO / CÉDULA</label>
+                <input type="text" id="c_documento" placeholder="Ej. 1020304050" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px; border-radius: 4px; margin-top: 4px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="color: #94A3B8; font-size: 0.75rem;">TELÉFONO / WHATSAPP</label>
+                <input type="text" id="c_telefono" placeholder="Ej. 3001234567" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px; border-radius: 4px; margin-top: 4px;">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="cerrarModalCliente()" style="flex: 1; background: #283245; color: #FFF; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">Cancelar</button>
+                <button type="submit" class="btn-gold" style="flex: 1;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Formato COP estricto sin decimales (ej. $160.000)
+    function formatCOP(valor) {
+        return '$' + Math.round(valor).toLocaleString('es-CO');
+    }
+
+    function agregarProducto() {
+        const select = document.getElementById('productoSelect');
+        const option = select.options[select.selectedIndex];
+        if (!option.value) return;
+
+        const id = option.value;
+        const nombre = option.dataset.nombre;
+        const precio = parseFloat(option.dataset.precio);
+
+        if (document.getElementById(`row-${id}`)) return;
+
+        const row = document.createElement('tr');
+        row.id = `row-${id}`;
+        row.style.borderBottom = "1px solid #1E2638";
+        row.innerHTML = `
+            <td style="padding: 10px; color: #FFF;">${nombre}<input type="hidden" name="producto_ids" value="${id}"></td>
+            <td style="padding: 10px; color: #94A3B8;">${formatCOP(precio)}</td>
+            <td style="padding: 10px;"><input type="number" name="cantidades" value="1" min="1" max="${option.dataset.stock}" onchange="calcularTotal()" style="width: 50px; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 4px; border-radius: 4px;"></td>
+            <td style="padding: 10px; color: #D4AF37; font-weight: 600;" class="subtotal-cell">${formatCOP(precio)}</td>
+            <td style="padding: 10px; text-align: right;"><button type="button" onclick="eliminarRow('${id}')" style="background: none; border: none; color: #F87171; cursor: pointer;">✕</button></td>
+        `;
+        document.getElementById('itemsBody').appendChild(row);
+        calcularTotal();
+    }
+
+    function eliminarRow(id) {
+        document.getElementById(`row-${id}`).remove();
+        calcularTotal();
+    }
+
+    function calcularTotal() {
+        let acumulado = 0;
+        const rows = document.querySelectorAll('#itemsBody tr');
+        rows.forEach(r => {
+            const precioTexto = r.children[1].innerText.replace('$', '').replace(/\./g, '');
+            const precio = parseFloat(precioTexto) || 0;
+            const cant = parseInt(r.children[2].querySelector('input').value) || 0;
+            const sub = precio * cant;
+            r.querySelector('.subtotal-cell').innerText = formatCOP(sub);
+            acumulado += sub;
+        });
+        document.getElementById('totalDisplay').innerText = formatCOP(acumulado);
+    }
+
+    function abrirModalCliente() { document.getElementById('modalCliente').classList.add('active'); }
+    function cerrarModalCliente() { document.getElementById('modalCliente').classList.remove('active'); }
+
+    document.getElementById('formClienteRapido').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('nombre', document.getElementById('c_nombre').value);
+        formData.append('documento', document.getElementById('c_documento').value);
+        formData.append('telefono', document.getElementById('c_telefono').value);
+
+        const res = await fetch('/api/clientes/rapido', { method: 'POST', body: formData });
+        if (res.ok) {
+            const data = await res.json();
+            const select = document.getElementById('clienteSelect');
+            const newOpt = new Option(data.nombre, data.id, true, true);
+            select.add(newOpt);
+            cerrarModalCliente();
+            document.getElementById('formClienteRapido').reset();
+        } else {
+            const err = await res.json();
+            alert(err.error || 'Error al guardar cliente');
+        }
+    });
+</script>
+{% endblock %}

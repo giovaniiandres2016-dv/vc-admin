@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VC ATELIER{% endblock %}</title>
+    
+    <!-- CSS Principal con parámetro anti-caché -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}?v=99.0">
+    
+    {% block extra_head %}{% endblock %}
+
+    <!-- jQuery y JS de DataTables -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <img src="{{ url_for('static', path='img/logo.png') }}" alt="VC Atelier Logo" class="sidebar-logo">
+                <h2 class="brand-title" style="font-size: 1.1rem;">VC ATELIER</h2>
+                <p class="brand-sub">ROL: {{ user.rol }}</p>
+                
+                <nav class="sidebar-nav">
+                    <a href="/" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">Dashboard</a>
+                    <a href="/ventas" class="nav-link {% if active_page == 'ventas' %}active{% endif %}">Ventas</a>
+                    <a href="/inventario" class="nav-link {% if active_page == 'inventario' %}active{% endif %}">Inventario</a>
+                    <a href="/clientes" class="nav-link {% if active_page == 'clientes' %}active{% endif %}">Clientes</a>
+                    
+                    {% if user.rol == 'ADMIN' %}
+                    <a href="/ventas/anulaciones" class="nav-link {% if active_page == 'anulaciones' %}active{% endif %}" style="color: #FACC15;">Anulaciones</a>
+                    {% endif %}
+                </nav>
+            </div>
+            
+            <div class="sidebar-user-footer">
+                <p style="color: #FFFFFF; font-size: 0.85rem; font-weight: 600; text-transform: capitalize;">{{ user.nombre }}</p>
+                <a href="/logout" style="color: #F87171; font-size: 0.8rem; text-decoration: none; font-weight: 500;">Cerrar Sesión</a>
+            </div>
+        </aside>
+
+        <!-- CONTENIDO DINÁMICO -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

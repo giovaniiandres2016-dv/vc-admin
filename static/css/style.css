@@ -1,0 +1,355 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+    background-color: #040507 !important;
+    color: #E2E8F0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Identidad de Marca */
+.brand-title {
+    color: #FFFFFF;
+    letter-spacing: 3px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.brand-sub {
+    color: #717B8C;
+    font-size: 0.65rem;
+    letter-spacing: 2.5px;
+    text-align: center;
+    margin-top: 4px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    font-weight: 400;
+}
+
+.brand-slogan {
+    color: #D4AF37;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-align: center;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin-top: 20px;
+    font-weight: 500;
+}
+
+/* Pantalla Login */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    background-color: #020305;
+}
+
+.login-box {
+    background-color: #090C10 !important;
+    border: 1px solid rgba(212, 175, 55, 0.12) !important;
+    border-radius: 12px;
+    padding: 48px 36px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.9);
+    text-align: center;
+}
+
+.login-logo {
+    width: 75px;
+    height: auto;
+    margin: 0 auto 24px auto;
+    display: block;
+    filter: drop-shadow(0 4px 12px rgba(212, 175, 55, 0.15));
+}
+
+.form-group {
+    margin-bottom: 22px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    color: #717B8C;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.form-group input {
+    width: 100%;
+    background-color: #040507 !important;
+    border: 1px solid #161D28 !important;
+    border-radius: 6px;
+    color: #FFFFFF !important;
+    padding: 13px 16px;
+    font-size: 0.85rem;
+    outline: none;
+    transition: all 0.25s ease;
+}
+
+.form-group input:focus {
+    border-color: #D4AF37 !important;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
+}
+
+/* Botón Dorado Elegante */
+.btn-gold {
+    width: 100%;
+    background: linear-gradient(135deg, #E5C158 0%, #C29B26 100%) !important;
+    color: #040507 !important;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 2.5px;
+    border: none !important;
+    border-radius: 6px;
+    padding: 13px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.25s ease;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+}
+
+.btn-gold:hover {
+    background: linear-gradient(135deg, #F0CE68D8 0%, #D4AF37 100%) !important;
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35);
+    transform: translateY(-1px);
+}
+
+.alert-error {
+    background-color: #14080A !important;
+    border: 1px solid rgba(224, 108, 117, 0.2) !important;
+    color: #E06C75 !important;
+    padding: 11px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Layout General y Sidebar */
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 100%;
+    background-color: #090C10 !important;
+    border-bottom: 1px solid #161D28 !important;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.sidebar-logo {
+    width: 45px;
+    height: auto;
+    display: block;
+    margin: 0 auto 8px auto;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.sidebar-user-footer {
+    border-top: 1px solid #161D28 !important;
+    padding-top: 14px;
+    margin-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.main-content {
+    flex: 1;
+    padding: 24px;
+    background-color: #040507 !important;
+}
+
+.nav-link {
+    display: inline-block;
+    color: #717B8C;
+    text-decoration: none;
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    color: #FFFFFF !important;
+    background-color: #121822 !important;
+}
+
+.nav-link.active {
+    color: #D4AF37 !important;
+    background-color: #0F131C !important;
+    border: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+.page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid #161D28;
+    padding-bottom: 18px;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* SOBREESCRITURA GLOBAL DE CONTENEDORES Y TARJETAS */
+div[style*="background-color"], 
+div[style*="background:"],
+section {
+    background-color: #090C10 !important;
+    border-color: #161D28 !important;
+    border-radius: 8px;
+}
+
+/* Excepción para fondos que deben ser oscuros profundos */
+.main-content, .app-layout, body, .login-container {
+    background-color: #040507 !important;
+}
+
+/* Estilos de DataTables Ultra Clean Dark & Gold */
+.dataTables_wrapper {
+    color: #717B8C;
+    font-family: inherit;
+    font-size: 0.8rem;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    background-color: #040507 !important;
+    border: 1px solid #161D28 !important;
+    color: #FFFFFF !important;
+    border-radius: 6px !important;
+    padding: 7px 12px !important;
+    outline: none !important;
+    transition: border-color 0.2s ease;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus,
+.dataTables_wrapper .dataTables_length select:focus {
+    border-color: #D4AF37 !important;
+}
+
+.dataTables_wrapper .dataTables_filter label,
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing {
+    color: #717B8C !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    background: #040507 !important;
+    border: 1px solid #161D28 !important;
+    color: #717B8C !important;
+    border-radius: 6px !important;
+    margin-left: 4px !important;
+    transition: all 0.2s ease;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current, 
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: #D4AF37 !important;
+    border-color: #D4AF37 !important;
+    color: #040507 !important;
+    font-weight: 600;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #161D28 !important;
+    color: #FFFFFF !important;
+    border-color: #242E3E !important;
+}
+
+table.dataTable {
+    border-collapse: collapse !important;
+}
+
+table.dataTable.no-footer {
+    border-bottom: 1px solid #161D28 !important;
+}
+
+/* Media Queries Desktop */
+@media (min-width: 768px) {
+    .app-layout {
+        flex-direction: row;
+    }
+
+    .sidebar {
+        width: 250px;
+        min-width: 250px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        border-bottom: none;
+        border-right: 1px solid #161D28 !important;
+        padding: 28px 20px;
+    }
+
+    .sidebar-logo {
+        width: 60px;
+        margin-bottom: 20px;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 0;
+    }
+
+    .sidebar-user-footer {
+        display: block;
+        margin-top: 0;
+    }
+
+    .nav-link {
+        display: block;
+        padding: 11px 16px;
+    }
+
+    .main-content {
+        padding: 36px;
+    }
+
+    .page-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}VC ATELIER - Ventas{% endblock %}
+
+{% block extra_head %}
+<!-- Estilos de DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2 style="color: #FFFFFF; font-weight: 600;">Registro de Ventas</h2>
+    
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        {% if user.rol == 'ADMIN' %}
+        <a href="/ventas/anulaciones" class="btn-gold" style="text-decoration: none; padding: 10px 16px; background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); color: #FFF; width: auto;">
+            🚨 Gestión de Anulaciones
+        </a>
+        {% endif %}
+        
+        <a href="/ventas/nueva" class="btn-gold" style="text-decoration: none; padding: 10px 16px; display: inline-block; width: auto;">+ Nueva Venta</a>
+    </div>
+</div>
+
+<!-- TABLA DE VENTAS CON DATATABLES -->
+<div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 16px;">
+    <div class="table-responsive">
+        <table id="tablaVentas" class="display" style="width: 100%; color: #E2E8F0; font-size: 0.85rem;">
+            <thead>
+                <tr style="background-color: #171D28; border-bottom: 1px solid #1E2638; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">
+                    <th style="padding: 14px;">ID</th>
+                    <th style="padding: 14px;">Fecha</th>
+                    <th style="padding: 14px;">Total</th>
+                    <th style="padding: 14px;">Pago</th>
+                    <th style="padding: 14px;">Estado</th>
+                    <th style="padding: 14px; text-align: right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in ventas %}
+                <tr style="border-bottom: 1px solid #1E2638;">
+                    <td style="padding: 14px;">#{{ v.id }}</td>
+                    <td style="padding: 14px;">{{ v.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td style="padding: 14px; font-weight: 600; color: #FFFFFF;">${{ "{:,.0f}".format(v.total).replace(',', '.') }}</td>
+                    <td style="padding: 14px;">{{ v.metodo_pago }}</td>
+                    <td style="padding: 14px;">
+                        {% if v.estado == 'COMPLETADA' %}
+                            <span style="color: #4ADE80; background: rgba(74, 222, 128, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Completada</span>
+                        {% elif v.estado == 'SOLICITADA_ANULACION' %}
+                            <span style="color: #FACC15; background: rgba(250, 204, 21, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Anulación Solicitada</span>
+                        {% else %}
+                            <span style="color: #F87171; background: rgba(248, 113, 113, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Anulada</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 14px; text-align: right;">
+                        {% if v.estado == 'COMPLETADA' %}
+                            <form action="/ventas/{{ v.id }}/solicitar-anulacion" method="POST" style="display: inline; margin-right: 5px;">
+                                <button type="submit" style="background: none; border: 1px solid #FACC15; color: #FACC15; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                                    Solicitar Anulación
+                                </button>
+                            </form>
+                        {% endif %}
+                        <a href="/ventas/{{ v.id }}/factura" target="_blank" style="background: rgba(212, 175, 55, 0.15); color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.4); padding: 5px 10px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: bold;">
+                            🖨️ Imprimir
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- jQuery y JS de DataTables -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#tablaVentas').DataTable({
+            "pageLength": 10,
+            "order": [[ 0, "desc" ]],
+            "language": {
+                "lengthMenu": "Mostrar _MENU_ registros por página",
+                "zeroRecords": "No se encontraron ventas",
+                "info": "Mostrando página _PAGE_ de _PAGES_",
+                "infoEmpty": "No hay registros disponibles",
+                "infoFiltered": "(filtrado de _MAX_ registros totales)",
+                "search": "Buscador en tiempo real:",
+                "paginate": {
+                    "first": "Primero",
+                    "last": "Último",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

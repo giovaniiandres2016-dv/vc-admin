@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}VC ATELIER - Inventario{% endblock %}
+
+{% block extra_head %}
+<!-- Estilos de DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<style>
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .modal.active { display: flex; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 style="color: #FFFFFF; font-weight: 600; font-size: 1.5rem;">Gestión de Inventario</h2>
+        <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 4px;">Control de stock, precios y catálogo de prendas</p>
+    </div>
+    
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button type="button" onclick="abrirModalImportar()" class="btn-gold" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFF; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+            📁 Importar Excel
+        </button>
+        <a href="/inventario/nuevo" class="btn-gold" style="text-decoration: none; padding: 10px 18px; display: inline-block;">
+            + Nuevo Producto
+        </a>
+    </div>
+</div>
+
+<!-- TABLA DE INVENTARIO CON DATATABLES -->
+<div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 16px;">
+    <div class="table-responsive">
+        <table id="tablaInventario" class="display" style="width: 100%; color: #E2E8F0; font-size: 0.85rem;">
+            <thead>
+                <tr style="background-color: #171D28; border-bottom: 1px solid #1E2638; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">
+                    <th style="padding: 14px;">Código</th>
+                    <th style="padding: 14px;">Producto</th>
+                    <th style="padding: 14px;">Precio Venta</th>
+                    <th style="padding: 14px; text-align: center;">Stock Disponible</th>
+                    <th style="padding: 14px; text-align: right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in productos %}
+                <tr style="border-bottom: 1px solid #1E2638;">
+                    <td style="padding: 14px; color: #94A3B8; font-family: monospace;">{{ p.codigo or 'S/C' }}</td>
+                    <td style="padding: 14px;">
+                        <span style="font-weight: 600; color: #FFFFFF; display: block;">{{ p.nombre }}</span>
+                    </td>
+                    <td style="padding: 14px; color: #D4AF37; font-weight: 600;">${{ "{:,.0f}".format(p.precio).replace(',', '.') }}</td>
+                    <td style="padding: 14px; text-align: center;">
+                        {% if p.stock > 5 %}
+                            <span style="background: rgba(74, 222, 128, 0.1); color: #4ADE80; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                                {{ p.stock }} unidades
+                            </span>
+                        {% elif p.stock > 0 %}
+                            <span style="background: rgba(251, 191, 36, 0.1); color: #FBBF24; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                                {{ p.stock }} ¡Bajo stock!
+                            </span>
+                        {% else %}
+                            <span style="background: rgba(248, 113, 113, 0.1); color: #F87171; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                                Agotado
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 14px; text-align: right; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                        <a href="/inventario/{{ p.id }}/editar" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem; padding: 6px 10px; background: #171D28; border: 1px solid #283245; border-radius: 4px;">Editar</a>
+
+                        {% if user.rol == 'ADMIN' %}
+                            {% if p.solicitud_eliminacion == True or p.solicitud_eliminacion == 1 %}
+                                <span style="background: #78350f; color: #fde68a; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;" title="Motivo: {{ p.motivo_eliminacion }}">
+                                    ⚠️ Solicitud
+                                </span>
+                                <form action="/inventario/{{ p.id }}/procesar-solicitud-eliminacion" method="post" style="display:inline;">
+                                    <input type="hidden" name="accion" value="aprobar">
+                                    <button type="submit" style="background: #065f46; color: #34d399; border:none; padding:6px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem;">Aprobar</button>
+                                </form>
+                                <form action="/inventario/{{ p.id }}/procesar-solicitud-eliminacion" method="post" style="display:inline;">
+                                    <input type="hidden" name="accion" value="rechazar">
+                                    <button type="submit" style="background: #991b1b; color: #fca5a5; border:none; padding:6px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem;">Rechazar</button>
+                                </form>
+                            {% else %}
+                                <form action="/inventario/{{ p.id }}/eliminar-directo" method="post" style="display:inline;" onsubmit="return confirm('¿Estás seguro de eliminar este producto?');">
+                                    <button type="submit" style="background: #991b1b; color: #fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Eliminar</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL PARA IMPORTAR EXCEL -->
+<div class="modal" id="modalImportar">
+    <div style="text-align: left; max-width: 450px; width: 100%; background: #11151C; border: 1px solid #1E2638; padding: 24px; border-radius: 8px;">
+        <h3 style="color: #FFF; margin-bottom: 10px;">Importar Inventario desde Excel</h3>
+        <p style="color: #94A3B8; font-size: 0.8rem; margin-bottom: 16px;">
+            Sube un archivo `.xlsx` o `.xls`. Columnas requeridas: <b>codigo</b>, <b>nombre</b>, <b>precio</b> y <b>stock</b>.
+        </p>
+        <form action="/inventario/importar" method="POST" enctype="multipart/form-data">
+            <div style="margin-bottom: 20px;">
+                <input type="file" name="archivo_excel" accept=".xlsx, .xls" required style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="cerrarModalImportar()" style="flex: 1; background: #283245; color: #FFF; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">Cancelar</button>
+                <button type="submit" class="btn-gold" style="flex: 1;">Subir e Importar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- jQuery y JS de DataTables -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    function abrirModalImportar() { document.getElementById('modalImportar').classList.add('active'); }
+    function cerrarModalImportar() { document.getElementById('modalImportar').classList.remove('active'); }
+
+    $(document).ready(function() {
+        $('#tablaInventario').DataTable({
+            "pageLength": 10,
+            "language": {
+                "lengthMenu": "Mostrar _MENU_ registros por página",
+                "zeroRecords": "No se encontraron productos",
+                "info": "Mostrando página _PAGE_ de _PAGES_",
+                "infoEmpty": "No hay registros disponibles",
+                "infoFiltered": "(filtrado de _MAX_ registros totales)",
+                "search": "Buscador en tiempo real:",
+                "paginate": {
+                    "first": "Primero",
+                    "last": "Último",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

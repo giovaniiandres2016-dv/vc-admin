@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}VC ATELIER - {% if producto %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
+
+{% block content %}
+<a href="/inventario" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem;">← Volver al Inventario</a>
+<h2 style="color: #FFFFFF; font-weight: 600; margin-top: 8px; margin-bottom: 20px;">
+    {% if producto %}Editar Producto: {{ producto.nombre }}{% else %}Registrar Nuevo Producto{% endif %}
+</h2>
+
+<div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 24px; max-width: 750px;">
+    <form action="{% if producto %}/inventario/{{ producto.id }}/actualizar{% else %}/inventario/guardar{% endif %}" method="POST">
+        <div class="venta-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+            
+            <!-- CATEGORÍA -->
+            <div class="form-group" style="grid-column: span 2;">
+                <label>CATEGORÍA *</label>
+                <select name="categoria" required style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px 14px; border-radius: 6px; font-size: 0.88rem; outline: none;">
+                    <option value="" disabled {% if not producto or not producto.categoria %}selected{% endif %}>Seleccione una categoría...</option>
+                    {% set cats = ["calzado", "camisetas", "sacos", "conjunto camiseta", "conjunto saco", "jeans caballero", "jeans dama", "blusas", "otros"] %}
+                    {% for cat in cats %}
+                    <option value="{{ cat }}" {% if producto and producto.categoria == cat %}selected{% endif %}>{{ cat | title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- MARCA -->
+            <div class="form-group">
+                <label>MARCA *</label>
+                <input type="text" id="inputMarca" name="marca" required value="{{ producto.marca if producto else '' }}" placeholder="Ej. ÉPIKA / Zara">
+            </div>
+
+            <!-- REFERENCIA -->
+            <div class="form-group">
+                <label>REFERENCIA *</label>
+                <input type="text" id="inputReferencia" name="referencia" required value="{{ producto.referencia if producto else '' }}" placeholder="Ej. Ref 502">
+            </div>
+
+            <!-- COLOR -->
+            <div class="form-group">
+                <label>COLOR *</label>
+                <input type="text" id="inputColor" name="color" required value="{{ producto.color if producto else '' }}" placeholder="Ej. Negro / Vino tinto">
+            </div>
+
+            <!-- TALLA -->
+            <div class="form-group">
+                <label>TALLA *</label>
+                <input type="text" id="inputTalla" name="talla" required value="{{ producto.talla if producto else '' }}" placeholder="Ej. M / 32 / 38">
+            </div>
+
+            <!-- NOMBRE FINAL AUTOCOMPLETADO -->
+            <div class="form-group" style="grid-column: span 2;">
+                <label style="color: #D4AF37;">NOMBRE DEL PRODUCTO (AUTOGENERADO) *</label>
+                <input type="text" id="inputNombreFinal" name="nombre" readonly required value="{{ producto.nombre if producto else '' }}" 
+                       style="background: #171D28; border: 1px solid #D4AF37; color: #D4AF37; font-weight: 600;" placeholder="Se generará solo...">
+            </div>
+
+            <div class="form-group">
+                <label>CÓDIGO / SKU</label>
+                <input type="text" name="codigo" value="{{ producto.codigo if producto else '' }}" placeholder="Ej. EPI-502-NE">
+            </div>
+
+            <!-- PRECIO DE COSTO EN COP -->
+            <div class="form-group">
+                <label style="color: #60A5FA;">PRECIO DE COSTO ($ COP) *</label>
+                <input type="number" step="1" name="precio_costo" required value="{{ producto.precio_costo | int if producto and producto.precio_costo is not none else '' }}" placeholder="Ej. 60000" style="border-color: #3b82f6;">
+            </div>
+
+            <!-- PRECIO DE VENTA EN COP -->
+            <div class="form-group">
+                <label>PRECIO DE VENTA ($ COP) *</label>
+                <input type="number" step="1" name="precio" required value="{{ producto.precio | int if producto and producto.precio is not none else '' }}" placeholder="Ej. 120000">
+            </div>
+
+            <div class="form-group" style="grid-column: span 2;">
+                <label>STOCK / CANTIDAD INICIAL *</label>
+                <input type="number" name="stock" required value="{{ producto.stock if producto else 0 }}" placeholder="Ej. 10">
+            </div>
+
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <a href="/inventario" style="flex: 1; background: #283245; color: #FFF; text-decoration: none; text-align: center; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">Cancelar</a>
+            <button type="submit" class="btn-gold" style="flex: 1;">{% if producto %}ACTUALIZAR PRODUCTO{% else %}GUARDAR PRODUCTO{% endif %}</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const marca = document.getElementById("inputMarca");
+        const referencia = document.getElementById("inputReferencia");
+        const color = document.getElementById("inputColor");
+        const talla = document.getElementById("inputTalla");
+        const nombreFinal = document.getElementById("inputNombreFinal");
+
+        function actualizarNombre() {
+            let m = marca.value.trim();
+            let r = referencia.value.trim();
+            let c = color.value.trim();
+            let t = talla.value.trim();
+
+            let partes = [m, r, c, t].filter(Boolean);
+            nombreFinal.value = partes.join(" ");
+        }
+
+        [marca, referencia, color, talla].forEach(input => {
+            if (input) {
+                input.addEventListener("input", actualizarNombre);
+            }
+        });
+    });
+</script>
+{% endblock %}

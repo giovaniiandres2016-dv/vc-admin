@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VC ATELIER - Iniciar Sesión</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <!-- Logo PNG de VC Atelier -->
+            <img src="/static/img/logo.png" alt="VC Atelier Logo" class="login-logo">
+            
+            <h1 class="brand-title">VC ATELIER</h1>
+            <p class="brand-sub">SISTEMA DE GESTIÓN</p>
+
+            {% if error %}
+            <div class="alert-error">{{ error }}</div>
+            {% endif %}
+
+            <form action="/login" method="POST">
+                <div class="form-group">
+                    <label>USUARIO</label>
+                    <input type="text" name="username" placeholder="Ingresa tu usuario" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>CONTRASEÑA</label>
+                    <input type="password" name="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-gold">INGRESAR</button>
+            </form>
+
+            <p class="brand-slogan">Disciplina • Esfuerzo • Propósito</p>
+        </div>
+    </div>
+</body>
+</html>
