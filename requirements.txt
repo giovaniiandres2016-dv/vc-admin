@@ -8,3 +8,4 @@ openpyxl
 pydantic
 itsdangerous
 bcrypt
+python-multipart
