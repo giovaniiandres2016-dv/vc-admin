@@ -3,82 +3,134 @@
 {% block title %}VC ATELIER - Ventas{% endblock %}
 
 {% block extra_head %}
-<!-- Estilos de DataTables -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<style>
+    .dataTables_wrapper {
+        color: #E2E8F0;
+        font-size: 0.8rem;
+    }
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_filter input {
+        background-color: #171D28;
+        border: 1px solid #283245;
+        color: #FFFFFF;
+        border-radius: 6px;
+        padding: 6px 10px;
+    }
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 12px;
+    }
+    .dataTables_wrapper .dataTables_length {
+        margin-bottom: 12px;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        margin-top: 12px;
+    }
+    .dataTables_wrapper .dataTables_info {
+        margin-top: 12px;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        color: #E2E8F0 !important;
+        border: 1px solid #283245 !important;
+        background: #171D28 !important;
+        border-radius: 6px;
+        margin: 0 2px;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #D4AF37 !important;
+        color: #000 !important;
+        border-color: #D4AF37 !important;
+        font-weight: bold;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #283245 !important;
+        color: #FFF !important;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="page-header">
     <h2 style="color: #FFFFFF; font-weight: 600;">Registro de Ventas</h2>
     
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
         {% if user.rol == 'ADMIN' %}
-        <a href="/ventas/anulaciones" class="btn-gold" style="text-decoration: none; padding: 10px 16px; background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); color: #FFF; width: auto;">
+        <a href="/ventas/anulaciones" class="btn-gold" style="text-decoration: none; background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); color: #FFF; width: auto; display: inline-flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; height: 38px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
             🚨 Gestión de Anulaciones
         </a>
         {% endif %}
         
-        <a href="/ventas/nueva" class="btn-gold" style="text-decoration: none; padding: 10px 16px; display: inline-block; width: auto;">+ Nueva Venta</a>
+        <a href="/ventas/nueva" class="btn-gold" style="text-decoration: none; width: auto; display: inline-flex; align-items: center; justify-content: center; text-align: center; padding: 0 16px; height: 38px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">+ Nueva Venta</a>
     </div>
 </div>
 
-<!-- TABLA DE VENTAS CON DATATABLES -->
-<div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 16px;">
-    <div class="table-responsive">
-        <table id="tablaVentas" class="display" style="width: 100%; color: #E2E8F0; font-size: 0.85rem;">
-            <thead>
-                <tr style="background-color: #171D28; border-bottom: 1px solid #1E2638; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">
-                    <th style="padding: 14px;">ID</th>
-                    <th style="padding: 14px;">Fecha</th>
-                    <th style="padding: 14px;">Total</th>
-                    <th style="padding: 14px;">Pago</th>
-                    <th style="padding: 14px;">Estado</th>
-                    <th style="padding: 14px; text-align: right;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for v in ventas %}
-                <tr style="border-bottom: 1px solid #1E2638;">
-                    <td style="padding: 14px;">#{{ v.id }}</td>
-                    <td style="padding: 14px;">{{ v.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td style="padding: 14px; font-weight: 600; color: #FFFFFF;">${{ "{:,.0f}".format(v.total).replace(',', '.') }}</td>
-                    <td style="padding: 14px;">{{ v.metodo_pago }}</td>
-                    <td style="padding: 14px;">
+<div style="background-color: #090C10; border: 1px solid #161D28; border-radius: 8px; padding: 16px;">
+    <table id="tablaVentas" class="display" style="width: 100%; color: #E2E8F0; font-size: 0.8rem; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #171D28; border-bottom: 1px solid #161D28; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">
+                <th style="padding: 12px 14px;">ID</th>
+                <th style="padding: 12px 14px;">Fecha</th>
+                <th style="padding: 12px 14px;">Cliente</th>
+                <th style="padding: 12px 14px;">Producto(s)</th>
+                <th style="padding: 12px 14px;">Total</th>
+                <th style="padding: 12px 14px;">Pago</th>
+                <th style="padding: 12px 14px; text-align: center;">Estado</th>
+                <th style="padding: 12px 14px; text-align: right;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in ventas %}
+            <tr style="border-bottom: 1px solid #161D28; vertical-align: middle;">
+                <td style="padding: 12px 14px; font-weight: 600;">#{{ v.id }}</td>
+                <td style="padding: 12px 14px; white-space: nowrap;">{{ v.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td style="padding: 12px 14px; font-weight: 500; color: #FFFFFF;">{{ v.cliente.nombre if v.cliente else 'Cliente General' }}</td>
+                <td style="padding: 12px 14px; color: #94A3B8; max-width: 200px;">
+                    {% if v.detalles %}
+                        {{ v.detalles | map(attribute='producto.nombre') | join(', ') }}
+                    {% else %}
+                        {{ v.productos_texto if v.productos_texto else 'N/A' }}
+                    {% endif %}
+                </td>
+                <td style="padding: 12px 14px; font-weight: 600; color: #FFFFFF; white-space: nowrap;">${{ "{:,.0f}".format(v.total).replace(',', '.') }}</td>
+                <td style="padding: 12px 14px; white-space: nowrap;">{{ v.metodo_pago }}</td>
+                <td style="padding: 12px 14px; text-align: center; white-space: nowrap;">
+                    {% if v.estado == 'COMPLETADA' %}
+                        <span style="color: #4ADE80; background: rgba(74, 222, 128, 0.1); padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; display: inline-block;">COMPLETADA</span>
+                    {% elif v.estado == 'SOLICITADA_ANULACION' %}
+                        <span style="color: #FACC15; background: rgba(250, 204, 21, 0.1); padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; display: inline-block; line-height: 1.2; text-align: center;">ANULACIÓN<br>SOLICITADA</span>
+                    {% else %}
+                        <span style="color: #F87171; background: rgba(248, 113, 113, 0.1); padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; display: inline-block;">ANULADA</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 12px 14px; text-align: right; white-space: nowrap;">
+                    <div style="display: inline-flex; gap: 6px; align-items: center; justify-content: flex-end;">
                         {% if v.estado == 'COMPLETADA' %}
-                            <span style="color: #4ADE80; background: rgba(74, 222, 128, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Completada</span>
-                        {% elif v.estado == 'SOLICITADA_ANULACION' %}
-                            <span style="color: #FACC15; background: rgba(250, 204, 21, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Anulación Solicitada</span>
-                        {% else %}
-                            <span style="color: #F87171; background: rgba(248, 113, 113, 0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">Anulada</span>
-                        {% endif %}
-                    </td>
-                    <td style="padding: 14px; text-align: right;">
-                        {% if v.estado == 'COMPLETADA' %}
-                            <form action="/ventas/{{ v.id }}/solicitar-anulacion" method="POST" style="display: inline; margin-right: 5px;">
-                                <button type="submit" style="background: none; border: 1px solid #FACC15; color: #FACC15; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                            <form action="/ventas/{{ v.id }}/solicitar-anulacion" method="POST" style="margin: 0; display: inline;">
+                                <button type="submit" style="background: transparent; border: 1px solid #FACC15; color: #FACC15; padding: 0 10px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: 600;">
                                     Solicitar Anulación
                                 </button>
                             </form>
                         {% endif %}
-                        <a href="/ventas/{{ v.id }}/factura" target="_blank" style="background: rgba(212, 175, 55, 0.15); color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.4); padding: 5px 10px; border-radius: 4px; text-decoration: none; font-size: 0.75rem; font-weight: bold;">
+                        <a href="/ventas/{{ v.id }}/factura" target="_blank" style="background: rgba(212, 175, 55, 0.15); color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.4); padding: 0 10px; height: 32px; border-radius: 6px; text-decoration: none; font-size: 0.7rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
                             🖨️ Imprimir
                         </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<!-- jQuery y JS de DataTables -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready(function() {
         $('#tablaVentas').DataTable({
+            "scrollY": "340px",
+            "scrollCollapse": false,
             "pageLength": 10,
             "order": [[ 0, "desc" ]],
             "language": {

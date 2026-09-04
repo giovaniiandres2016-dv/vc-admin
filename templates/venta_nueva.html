@@ -1,11 +1,73 @@
 {% extends "base.html" %}
 
-{% block title %}VC ATELIER - Registrar Venta{% endblock %}
+{% block title %}ATELIER VC- Registrar Venta{% endblock %}
 
 {% block extra_head %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
 <style>
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
     .modal.active { display: flex; }
+
+    /* Estructura general de la vista de ventas */
+    .venta-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+    }
+    @media (max-width: 900px) {
+        .venta-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Estilos limpios y compactos para Select2 */
+    .select2-container {
+        width: 100% !important;
+    }
+    .select2-container--default .select2-selection--single {
+        background-color: #171D28 !important;
+        border: 1px solid #283245 !important;
+        border-radius: 6px !important;
+        height: 40px !important;
+        display: flex;
+        align-items: center;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #FFFFFF !important;
+        font-size: 0.85rem;
+        line-height: 40px !important;
+        padding-left: 10px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 38px !important;
+        right: 8px;
+    }
+    .select2-dropdown {
+        background-color: #11151C !important;
+        border: 1px solid #283245 !important;
+        border-radius: 6px !important;
+        color: #FFFFFF !important;
+        font-size: 0.85rem;
+    }
+    .select2-search--dropdown .select2-search__field {
+        background-color: #171D28 !important;
+        border: 1px solid #283245 !important;
+        color: #FFFFFF !important;
+        border-radius: 4px !important;
+        padding: 6px 10px !important;
+        outline: none;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #D4AF37 !important;
+        color: #11151C !important;
+        font-weight: 600;
+    }
+    .select2-container--default .select2-results__option {
+        color: #E2E8F0;
+        padding: 8px 12px;
+    }
 </style>
 {% endblock %}
 
@@ -21,42 +83,48 @@
             
             <!-- Selección Cliente -->
             <div style="margin-bottom: 20px;">
-                <label style="color: #94A3B8; font-size: 0.75rem; font-weight: 600;">CLIENTE</label>
-                <div class="flex-row-responsive" style="margin-top: 6px;">
-                    <select name="cliente_id" id="clienteSelect" style="flex: 1; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px; border-radius: 6px;">
-                        <option value="0">-- Cliente Ocasional / Anónimo --</option>
-                        {% for c in clientes %}
-                        <option value="{{ c.id }}">{{ c.nombre }} {% if c.documento %}({{ c.documento }}){% endif %}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="button" onclick="abrirModalCliente()" class="btn-gold" style="width: auto; padding: 10px 14px;">+ NUEVO CLIENTE</button>
+                <label style="color: #94A3B8; font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 6px;">CLIENTE</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="flex: 1; min-width: 0;">
+                        <select name="cliente_id" id="clienteSelect">
+                            <option value="0">-- Cliente Ocasional / Anónimo --</option>
+                            {% for c in clientes %}
+                            <option value="{{ c.id }}">{{ c.nombre }} {% if c.documento %}({{ c.documento }}){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="button" onclick="abrirModalCliente()" class="btn-gold" style="width: auto; padding: 0 16px; height: 40px; white-space: nowrap; font-size: 0.75rem; flex-shrink: 0;">+ NUEVO CLIENTE</button>
                 </div>
             </div>
 
             <!-- Selector de Productos -->
-            <h3 style="color: #FFF; font-size: 0.9rem; margin-bottom: 10px;">Añadir Productos</h3>
-            <div class="flex-row-responsive" style="margin-bottom: 15px;">
-                <select id="productoSelect" style="flex: 1; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px; border-radius: 6px;">
-                    <option value="">-- Seleccionar Producto --</option>
-                    {% for p in productos %}
-                    <option value="{{ p.id }}" data-precio="{{ p.precio }}" data-nombre="{{ p.nombre }}" data-stock="{{ p.stock }}">
-                        {{ p.nombre }} - ${{ "{:,.0f}".format(p.precio).replace(',', '.') }} (Stock: {{ p.stock }})
-                    </option>
-                    {% endfor %}
-                </select>
-                <button type="button" onclick="agregarProducto()" class="btn-gold" style="width: auto; padding: 10px 14px;">AGREGAR</button>
+            <div style="margin-bottom: 15px;">
+                <label style="color: #FFF; font-size: 0.9rem; font-weight: 600; display: block; margin-bottom: 8px;">Añadir Productos</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="flex: 1; min-width: 0;">
+                        <select id="productoSelect">
+                            <option value="">-- Seleccionar Producto --</option>
+                            {% for p in productos %}
+                            <option value="{{ p.id }}" data-precio="{{ p.precio }}" data-nombre="{{ p.nombre }}" data-stock="{{ p.stock }}">
+                                {{ p.nombre }} - ${{ "{:,.0f}".format(p.precio).replace(',', '.') }} (Stock: {{ p.stock }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="button" onclick="agregarProducto()" class="btn-gold" style="width: auto; padding: 0 16px; height: 40px; white-space: nowrap; font-size: 0.75rem; flex-shrink: 0;">AGREGAR</button>
+                </div>
             </div>
 
             <!-- Tabla de Items de la Venta Responsiva -->
-            <div class="table-responsive">
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 450px;" id="tablaItems">
+            <div class="table-responsive" style="margin-top: 20px;">
+                <table style="width: 100%; border-collapse: collapse; min-width: 450px;" id="tablaItems">
                     <thead>
                         <tr style="color: #94A3B8; font-size: 0.7rem; text-transform: uppercase; border-bottom: 1px solid #1E2638; text-align: left;">
-                            <th style="padding: 8px;">PRODUCTO</th>
-                            <th style="padding: 8px;">PRECIO</th>
-                            <th style="padding: 8px;">CANT.</th>
-                            <th style="padding: 8px;">SUBTOTAL</th>
-                            <th style="padding: 8px; text-align: right;">ACCIÓN</th>
+                            <th style="padding: 10px 8px;">PRODUCTO</th>
+                            <th style="padding: 10px 8px;">PRECIO</th>
+                            <th style="padding: 10px 8px;">CANT.</th>
+                            <th style="padding: 10px 8px;">SUBTOTAL</th>
+                            <th style="padding: 10px 8px; text-align: right;">ACCIÓN</th>
                         </tr>
                     </thead>
                     <tbody id="itemsBody">
@@ -72,8 +140,8 @@
                 <h3 style="color: #FFF; font-size: 1rem; margin-bottom: 15px;">Resumen</h3>
                 
                 <div style="margin-bottom: 15px;">
-                    <label style="color: #94A3B8; font-size: 0.75rem; font-weight: 600;">MÉTODO DE PAGO</label>
-                    <select name="metodo_pago" required style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px; border-radius: 6px; margin-top: 6px;">
+                    <label style="color: #94A3B8; font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 6px;">MÉTODO DE PAGO</label>
+                    <select name="metodo_pago" required style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 0 12px; border-radius: 6px; font-size: 0.85rem; height: 40px;">
                         <option value="EFECTIVO">Efectivo</option>
                         <option value="NEQUI">Nequi / Daviplata</option>
                         <option value="TRANSFERENCIA">Transferencia Bancaria</option>
@@ -87,31 +155,31 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-gold" style="margin-top: 20px;">COMPLETAR VENTA</button>
+            <button type="submit" class="btn-gold" style="margin-top: 20px; width: 100%; height: 42px;">COMPLETAR VENTA</button>
         </div>
     </div>
 </form>
 
 <!-- MODAL REGISTRO RÁPIDO DE CLIENTE -->
 <div class="modal" id="modalCliente">
-    <div class="login-box" style="text-align: left; max-width: 400px; background: #11151C; border: 1px solid #1E2638; padding: 24px; border-radius: 8px;">
-        <h3 style="color: #FFF; margin-bottom: 15px; text-align: center;">Registro Rápido de Cliente</h3>
+    <div style="width: 100%; max-width: 400px; background: #11151C; border: 1px solid #1E2638; padding: 24px; border-radius: 8px; text-align: left;">
+        <h3 style="color: #FFF; margin-bottom: 15px; text-align: center; font-size: 1.1rem;">Registro Rápido de Cliente</h3>
         <form id="formClienteRapido">
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label style="color: #94A3B8; font-size: 0.75rem;">NOMBRE COMPLETO *</label>
-                <input type="text" id="c_nombre" required placeholder="Ej. Carlos Pérez" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px; border-radius: 4px; margin-top: 4px;">
+            <div style="margin-bottom: 12px;">
+                <label style="color: #94A3B8; font-size: 0.75rem; display: block; margin-bottom: 4px;">NOMBRE COMPLETO *</label>
+                <input type="text" id="c_nombre" required placeholder="Ej. Carlos Pérez" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px 10px; border-radius: 4px; font-size: 0.85rem; box-sizing: border-box;">
             </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label style="color: #94A3B8; font-size: 0.75rem;">DOCUMENTO / CÉDULA</label>
-                <input type="text" id="c_documento" placeholder="Ej. 1020304050" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px; border-radius: 4px; margin-top: 4px;">
+            <div style="margin-bottom: 12px;">
+                <label style="color: #94A3B8; font-size: 0.75rem; display: block; margin-bottom: 4px;">DOCUMENTO / CÉDULA</label>
+                <input type="text" id="c_documento" placeholder="Ej. 1020304050" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px 10px; border-radius: 4px; font-size: 0.85rem; box-sizing: border-box;">
             </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label style="color: #94A3B8; font-size: 0.75rem;">TELÉFONO / WHATSAPP</label>
-                <input type="text" id="c_telefono" placeholder="Ej. 3001234567" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px; border-radius: 4px; margin-top: 4px;">
+            <div style="margin-bottom: 15px;">
+                <label style="color: #94A3B8; font-size: 0.75rem; display: block; margin-bottom: 4px;">TELÉFONO / WHATSAPP</label>
+                <input type="text" id="c_telefono" placeholder="Ej. 3001234567" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px 10px; border-radius: 4px; font-size: 0.85rem; box-sizing: border-box;">
             </div>
             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button type="button" onclick="cerrarModalCliente()" style="flex: 1; background: #283245; color: #FFF; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">Cancelar</button>
-                <button type="submit" class="btn-gold" style="flex: 1;">Guardar</button>
+                <button type="button" onclick="cerrarModalCliente()" style="flex: 1; background: #283245; color: #FFF; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Cancelar</button>
+                <button type="submit" class="btn-gold" style="flex: 1; height: 38px; font-size: 0.85rem;">Guardar</button>
             </div>
         </form>
     </div>
@@ -119,8 +187,23 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    // Formato COP estricto sin decimales (ej. $160.000)
+    $(document).ready(function() {
+        $('#clienteSelect').select2({
+            placeholder: "-- Seleccione o busque un cliente --",
+            allowClear: true,
+            width: '100%'
+        });
+
+        $('#productoSelect').select2({
+            placeholder: "-- Seleccione o busque un producto --",
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
     function formatCOP(valor) {
         return '$' + Math.round(valor).toLocaleString('es-CO');
     }
@@ -128,7 +211,7 @@
     function agregarProducto() {
         const select = document.getElementById('productoSelect');
         const option = select.options[select.selectedIndex];
-        if (!option.value) return;
+        if (!option || !option.value) return;
 
         const id = option.value;
         const nombre = option.dataset.nombre;
@@ -140,11 +223,11 @@
         row.id = `row-${id}`;
         row.style.borderBottom = "1px solid #1E2638";
         row.innerHTML = `
-            <td style="padding: 10px; color: #FFF;">${nombre}<input type="hidden" name="producto_ids" value="${id}"></td>
-            <td style="padding: 10px; color: #94A3B8;">${formatCOP(precio)}</td>
-            <td style="padding: 10px;"><input type="number" name="cantidades" value="1" min="1" max="${option.dataset.stock}" onchange="calcularTotal()" style="width: 50px; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 4px; border-radius: 4px;"></td>
-            <td style="padding: 10px; color: #D4AF37; font-weight: 600;" class="subtotal-cell">${formatCOP(precio)}</td>
-            <td style="padding: 10px; text-align: right;"><button type="button" onclick="eliminarRow('${id}')" style="background: none; border: none; color: #F87171; cursor: pointer;">✕</button></td>
+            <td style="padding: 10px 8px; color: #FFF;">${nombre}<input type="hidden" name="producto_ids" value="${id}"></td>
+            <td style="padding: 10px 8px; color: #94A3B8;">${formatCOP(precio)}</td>
+            <td style="padding: 10px 8px;"><input type="number" name="cantidades" value="1" min="1" max="${option.dataset.stock}" onchange="calcularTotal()" style="width: 55px; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 6px; border-radius: 4px; text-align: center;"></td>
+            <td style="padding: 10px 8px; color: #D4AF37; font-weight: 600;" class="subtotal-cell">${formatCOP(precio)}</td>
+            <td style="padding: 10px 8px; text-align: right;"><button type="button" onclick="eliminarRow('${id}')" style="background: none; border: none; color: #F87171; cursor: pointer; font-size: 1rem;">✕</button></td>
         `;
         document.getElementById('itemsBody').appendChild(row);
         calcularTotal();
@@ -182,9 +265,11 @@
         const res = await fetch('/api/clientes/rapido', { method: 'POST', body: formData });
         if (res.ok) {
             const data = await res.json();
-            const select = document.getElementById('clienteSelect');
+            const select = $('#clienteSelect');
+            
             const newOpt = new Option(data.nombre, data.id, true, true);
-            select.add(newOpt);
+            select.append(newOpt).trigger('change');
+
             cerrarModalCliente();
             document.getElementById('formClienteRapido').reset();
         } else {

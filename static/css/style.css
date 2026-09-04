@@ -12,6 +12,7 @@ body {
     color: #E2E8F0;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    font-size: 0.82rem !important;
 }
 
 /* Identidad de Marca */
@@ -75,41 +76,88 @@ body {
     filter: drop-shadow(0 4px 12px rgba(212, 175, 55, 0.15));
 }
 
+/* --- FORMULARIOS Y CAMPOS UNIFICADOS --- */
 .form-group {
-    margin-bottom: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px !important;
+    margin-bottom: 22px !important;
     text-align: left;
 }
 
 .form-group label {
     display: block;
     color: #717B8C;
-    font-size: 0.65rem;
+    font-size: 0.75rem !important;
     font-weight: 600;
     letter-spacing: 1.5px;
-    margin-bottom: 8px;
+    margin-bottom: 0 !important;
     text-transform: uppercase;
 }
 
-.form-group input {
-    width: 100%;
-    background-color: #040507 !important;
-    border: 1px solid #161D28 !important;
-    border-radius: 6px;
+/* Forzar geometría idéntica para todos los controles interactivos */
+input[type="text"], 
+input[type="number"], 
+input[type="email"], 
+input[type="password"], 
+input[type="date"],
+select,
+.select2-container--default .select2-selection--single {
+    height: 38px !important;
+    background-color: #171D28 !important;
+    border: 1px solid #283245 !important;
     color: #FFFFFF !important;
-    padding: 13px 16px;
-    font-size: 0.85rem;
-    outline: none;
+    border-radius: 6px !important;
+    font-size: 0.82rem !important;
+    box-sizing: border-box !important;
+    outline: none !important;
     transition: all 0.25s ease;
 }
 
-.form-group input:focus {
+input[type="text"], 
+input[type="number"], 
+input[type="email"], 
+input[type="password"], 
+input[type="date"] {
+    padding: 6px 12px !important;
+    width: 100%;
+}
+
+input[type="text"]:focus, 
+input[type="number"]:focus, 
+input[type="email"]:focus, 
+input[type="password"]:focus, 
+input[type="date"]:focus,
+select:focus {
     border-color: #D4AF37 !important;
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
 }
 
-/* Botón Dorado Elegante */
+/* --- SELECT2 UNIFICADO --- */
+.select2-container {
+    width: 100% !important;
+    display: block !important;
+}
+.select2-container--default .select2-selection--single {
+    display: flex !important;
+    align-items: center !important;
+    background-color: #171D28 !important;
+    border: 1px solid #283245 !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #FFFFFF !important;
+    padding-left: 10px !important;
+    line-height: normal !important;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px !important;
+    right: 6px !important;
+}
+
+/* --- BOTÓN DORADO ELEGANTE UNIFICADO --- */
 .btn-gold {
     width: 100%;
+    height: 38px !important;
     background: linear-gradient(135deg, #E5C158 0%, #C29B26 100%) !important;
     color: #040507 !important;
     font-weight: 600;
@@ -117,14 +165,17 @@ body {
     letter-spacing: 2.5px;
     border: none !important;
     border-radius: 6px;
-    padding: 13px;
+    padding: 0 16px !important;
     cursor: pointer;
     text-transform: uppercase;
     transition: all 0.25s ease;
     text-align: center;
     text-decoration: none;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+    box-sizing: border-box !important;
 }
 
 .btn-gold:hover {
@@ -229,6 +280,14 @@ body {
     overflow-x: auto;
 }
 
+/* Grillas limpias para vistas como ventas y productos */
+.venta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px !important;
+    align-items: start !important;
+}
+
 /* SOBREESCRITURA GLOBAL DE CONTENEDORES Y TARJETAS */
 div[style*="background-color"], 
 div[style*="background:"],
@@ -243,34 +302,76 @@ section {
     background-color: #040507 !important;
 }
 
-/* Estilos de DataTables Ultra Clean Dark & Gold */
+/* ========================================================== */
+/* ESTILOS FORZADOS PARA DATATABLES Y BUSCADORES (GLOBAL)      */
+/* ========================================================== */
 .dataTables_wrapper {
-    color: #717B8C;
+    color: #E2E8F0;
     font-family: inherit;
     font-size: 0.8rem;
 }
 
-.dataTables_wrapper .dataTables_filter input,
-.dataTables_wrapper .dataTables_length select {
-    background-color: #040507 !important;
-    border: 1px solid #161D28 !important;
+div.dataTables_wrapper div.dataTables_filter {
+    text-align: right;
+    color: #FFFFFF !important;
+    margin-bottom: 15px;
+}
+
+div.dataTables_wrapper div.dataTables_filter label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: #FFFFFF !important;
+    width: 100%;
+    justify-content: flex-end;
+}
+
+div.dataTables_wrapper div.dataTables_filter input,
+div.dataTables_wrapper div.dataTables_filter input[type="search"] {
+    background-color: #1E2638 !important;
+    border: 2px solid #F0CE68 !important;
+    color: #FFFFFF !important;
+    border-radius: 8px !important;
+    padding: 10px 16px !important;
+    outline: none !important;
+    width: 280px !important;
+    max-width: 100% !important;
+    box-shadow: 0 0 15px rgba(240, 206, 104, 0.3) !important;
+    font-size: 0.85rem !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    transition: all 0.25s ease;
+}
+
+div.dataTables_wrapper div.dataTables_filter input:focus {
+    border-color: #FFFFFF !important;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.4) !important;
+}
+
+.dataTables_wrapper div.dataTables_length {
+    color: #E2E8F0 !important;
+    margin-bottom: 15px;
+}
+
+.dataTables_wrapper div.dataTables_length select {
+    background-color: #1E2638 !important;
+    border: 2px solid #D4AF37 !important;
     color: #FFFFFF !important;
     border-radius: 6px !important;
-    padding: 7px 12px !important;
+    padding: 6px 12px !important;
     outline: none !important;
-    transition: border-color 0.2s ease;
 }
 
-.dataTables_wrapper .dataTables_filter input:focus,
-.dataTables_wrapper .dataTables_length select:focus {
-    border-color: #D4AF37 !important;
+.dataTables_wrapper div.dataTables_length select:focus {
+    border-color: #F0CE68 !important;
 }
 
-.dataTables_wrapper .dataTables_filter label,
-.dataTables_wrapper .dataTables_length label,
-.dataTables_wrapper .dataTables_info,
-.dataTables_wrapper .dataTables_processing {
-    color: #717B8C !important;
+.dataTables_wrapper div.dataTables_filter label,
+.dataTables_wrapper div.dataTables_length label,
+.dataTables_wrapper div.dataTables_info,
+.dataTables_wrapper div.dataTables_processing {
+    color: #E2E8F0 !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button {

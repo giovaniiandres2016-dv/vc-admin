@@ -1,13 +1,54 @@
 {% extends "base.html" %}
 
-{% block title %}VC ATELIER - Inventario{% endblock %}
+{% block title %}ATELIER VC - Inventario{% endblock %}
 
 {% block extra_head %}
-<!-- Estilos de DataTables -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <style>
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
     .modal.active { display: flex; }
+
+    .dataTables_wrapper {
+        color: #E2E8F0;
+        font-size: 0.8rem;
+    }
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_filter input {
+        background-color: #171D28;
+        border: 1px solid #283245;
+        color: #FFFFFF;
+        border-radius: 6px;
+        padding: 6px 10px;
+    }
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 12px;
+    }
+    .dataTables_wrapper .dataTables_length {
+        margin-bottom: 12px;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        margin-top: 12px;
+    }
+    .dataTables_wrapper .dataTables_info {
+        margin-top: 12px;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        color: #E2E8F0 !important;
+        border: 1px solid #283245 !important;
+        background: #171D28 !important;
+        border-radius: 6px;
+        margin: 0 2px;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #D4AF37 !important;
+        color: #000 !important;
+        border-color: #D4AF37 !important;
+        font-weight: bold;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #283245 !important;
+        color: #FFF !important;
+    }
 </style>
 {% endblock %}
 
@@ -18,83 +59,88 @@
         <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 4px;">Control de stock, precios y catálogo de prendas</p>
     </div>
     
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <button type="button" onclick="abrirModalImportar()" class="btn-gold" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFF; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <button type="button" onclick="abrirModalImportar()" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFF; border: none; padding: 0 18px; height: 38px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; text-align: center; gap: 6px;">
             📁 Importar Excel
         </button>
-        <a href="/inventario/nuevo" class="btn-gold" style="text-decoration: none; padding: 10px 18px; display: inline-block;">
+        <a href="/inventario/nuevo" class="btn-gold" style="text-decoration: none; padding: 0 18px; height: 38px; display: inline-flex; align-items: center; justify-content: center; text-align: center; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
             + Nuevo Producto
         </a>
     </div>
 </div>
 
-<!-- TABLA DE INVENTARIO CON DATATABLES -->
-<div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 16px;">
-    <div class="table-responsive">
-        <table id="tablaInventario" class="display" style="width: 100%; color: #E2E8F0; font-size: 0.85rem;">
-            <thead>
-                <tr style="background-color: #171D28; border-bottom: 1px solid #1E2638; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">
-                    <th style="padding: 14px;">Código</th>
-                    <th style="padding: 14px;">Producto</th>
-                    <th style="padding: 14px;">Precio Venta</th>
-                    <th style="padding: 14px; text-align: center;">Stock Disponible</th>
-                    <th style="padding: 14px; text-align: right;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in productos %}
-                <tr style="border-bottom: 1px solid #1E2638;">
-                    <td style="padding: 14px; color: #94A3B8; font-family: monospace;">{{ p.codigo or 'S/C' }}</td>
-                    <td style="padding: 14px;">
-                        <span style="font-weight: 600; color: #FFFFFF; display: block;">{{ p.nombre }}</span>
-                    </td>
-                    <td style="padding: 14px; color: #D4AF37; font-weight: 600;">${{ "{:,.0f}".format(p.precio).replace(',', '.') }}</td>
-                    <td style="padding: 14px; text-align: center;">
-                        {% if p.stock > 5 %}
-                            <span style="background: rgba(74, 222, 128, 0.1); color: #4ADE80; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
-                                {{ p.stock }} unidades
-                            </span>
-                        {% elif p.stock > 0 %}
-                            <span style="background: rgba(251, 191, 36, 0.1); color: #FBBF24; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
-                                {{ p.stock }} ¡Bajo stock!
-                            </span>
-                        {% else %}
-                            <span style="background: rgba(248, 113, 113, 0.1); color: #F87171; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
-                                Agotado
-                            </span>
-                        {% endif %}
-                    </td>
-                    <td style="padding: 14px; text-align: right; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
-                        <a href="/inventario/{{ p.id }}/editar" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem; padding: 6px 10px; background: #171D28; border: 1px solid #283245; border-radius: 4px;">Editar</a>
+<!-- ALERTA DE STOCK TRAS LA IMPORTACIÓN DE EXCEL -->
+{% if alerta_push %}
+<div style="background: rgba(251, 191, 36, 0.15); border: 1px solid #FBBF24; color: #FBBF24; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem;">
+    <span>{{ alerta_push }}</span>
+</div>
+{% endif %}
+
+<div style="background-color: #090C10; border: 1px solid #161D28; border-radius: 8px; padding: 16px;">
+    <table id="tablaInventario" class="display" style="width: 100%; color: #E2E8F0; font-size: 0.8rem; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #171D28; border-bottom: 1px solid #161D28; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">
+                <th style="padding: 12px 14px;">Código</th>
+                <th style="padding: 12px 14px;">Producto</th>
+                <th style="padding: 12px 14px;">Precio Venta</th>
+                <th style="padding: 12px 14px; text-align: center;">Stock Disponible</th>
+                <th style="padding: 12px 14px; text-align: right;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in productos %}
+            <tr style="border-bottom: 1px solid #161D28; vertical-align: middle;">
+                <td style="padding: 12px 14px; color: #94A3B8; font-family: monospace; white-space: nowrap;">{{ p.codigo or 'S/C' }}</td>
+                <td style="padding: 12px 14px;">
+                    <span style="font-weight: 600; color: #FFFFFF; display: block;">{{ p.nombre }}</span>
+                </td>
+                <td style="padding: 12px 14px; color: #D4AF37; font-weight: 600; white-space: nowrap;">${{ "{:,.0f}".format(p.precio).replace(',', '.') }}</td>
+                <td style="padding: 12px 14px; text-align: center; white-space: nowrap;">
+                    {% if p.stock > 5 %}
+                        <span style="background: rgba(74, 222, 128, 0.1); color: #4ADE80; padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; display: inline-block;">
+                            {{ p.stock }} unidades
+                        </span>
+                    {% elif p.stock > 0 %}
+                        <span style="background: rgba(251, 191, 36, 0.1); color: #FBBF24; padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; display: inline-block;">
+                            {{ p.stock }} ¡Bajo stock!
+                        </span>
+                    {% else %}
+                        <span style="background: rgba(248, 113, 113, 0.1); color: #F87171; padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; display: inline-block;">
+                            Agotado
+                        </span>
+                    {% endif %}
+                </td>
+                <td style="padding: 12px 14px; text-align: right; white-space: nowrap;">
+                    <div style="display: inline-flex; gap: 6px; align-items: center; justify-content: flex-end;">
+                        <a href="/inventario/{{ p.id }}/editar" style="color: #94A3B8; text-decoration: none; font-size: 0.7rem; font-weight: 600; padding: 0 10px; height: 32px; background: #171D28; border: 1px solid #283245; border-radius: 6px; display: inline-flex; align-items: center;">Editar</a>
 
                         {% if user.rol == 'ADMIN' %}
                             {% if p.solicitud_eliminacion == True or p.solicitud_eliminacion == 1 %}
-                                <span style="background: #78350f; color: #fde68a; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px;" title="Motivo: {{ p.motivo_eliminacion }}">
+                                <span style="background: rgba(120, 53, 15, 0.4); border: 1px solid rgba(253, 230, 138, 0.3); color: #FDE68A; font-size: 0.7rem; font-weight: 600; padding: 0 8px; height: 32px; border-radius: 6px; display: inline-flex; align-items: center;" title="Motivo: {{ p.motivo_eliminacion }}">
                                     ⚠️ Solicitud
                                 </span>
-                                <form action="/inventario/{{ p.id }}/procesar-solicitud-eliminacion" method="post" style="display:inline;">
+                                <form action="/inventario/{{ p.id }}/procesar-solicitud-eliminacion" method="post" style="margin: 0; display: inline;">
                                     <input type="hidden" name="accion" value="aprobar">
-                                    <button type="submit" style="background: #065f46; color: #34d399; border:none; padding:6px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem;">Aprobar</button>
+                                    <button type="submit" style="background: rgba(6, 95, 70, 0.5); border: 1px solid rgba(52, 211, 153, 0.4); color: #34D399; padding: 0 10px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: 600;">Aprobar</button>
                                 </form>
-                                <form action="/inventario/{{ p.id }}/procesar-solicitud-eliminacion" method="post" style="display:inline;">
+                                <form action="/inventario/{{ p.id }}/procesar-solicitud-eliminacion" method="post" style="margin: 0; display: inline;">
                                     <input type="hidden" name="accion" value="rechazar">
-                                    <button type="submit" style="background: #991b1b; color: #fca5a5; border:none; padding:6px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem;">Rechazar</button>
+                                    <button type="submit" style="background: rgba(153, 27, 27, 0.5); border: 1px solid rgba(252, 165, 165, 0.4); color: #FCA5A5; padding: 0 10px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: 600;">Rechazar</button>
                                 </form>
                             {% else %}
-                                <form action="/inventario/{{ p.id }}/eliminar-directo" method="post" style="display:inline;" onsubmit="return confirm('¿Estás seguro de eliminar este producto?');">
-                                    <button type="submit" style="background: #991b1b; color: #fff; border:none; padding:6px 10px; border-radius:4px; cursor:pointer; font-size:0.8rem;">Eliminar</button>
+                                <form action="/inventario/{{ p.id }}/eliminar-directo" method="post" style="margin: 0; display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este producto?');">
+                                    <button type="submit" style="background: rgba(153, 27, 27, 0.2); border: 1px solid rgba(248, 113, 113, 0.4); color: #F87171; padding: 0 10px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: 600;">Eliminar</button>
                                 </form>
                             {% endif %}
                         {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
-<!-- MODAL PARA IMPORTAR EXCEL -->
 <div class="modal" id="modalImportar">
     <div style="text-align: left; max-width: 450px; width: 100%; background: #11151C; border: 1px solid #1E2638; padding: 24px; border-radius: 8px;">
         <h3 style="color: #FFF; margin-bottom: 10px;">Importar Inventario desde Excel</h3>
@@ -107,7 +153,7 @@
             </div>
             <div style="display: flex; gap: 10px;">
                 <button type="button" onclick="cerrarModalImportar()" style="flex: 1; background: #283245; color: #FFF; border: none; padding: 10px; border-radius: 6px; cursor: pointer;">Cancelar</button>
-                <button type="submit" class="btn-gold" style="flex: 1;">Subir e Importar</button>
+                <button type="submit" class="btn-gold" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; text-align: center;">Subir e Importar</button>
             </div>
         </form>
     </div>
@@ -115,7 +161,6 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- jQuery y JS de DataTables -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
@@ -124,6 +169,8 @@
 
     $(document).ready(function() {
         $('#tablaInventario').DataTable({
+            "scrollY": "340px",
+            "scrollCollapse": false,
             "pageLength": 10,
             "language": {
                 "lengthMenu": "Mostrar _MENU_ registros por página",

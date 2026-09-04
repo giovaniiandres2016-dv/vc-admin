@@ -1,55 +1,63 @@
 {% extends "base.html" %}
 
-{% block title %}VC ATELIER - Registrar Cliente{% endblock %}
+{% block title %}ATELIER VC - {% if cliente %}Editar Cliente{% else %}Registrar Cliente{% endif %}{% endblock %}
 
 {% block content %}
 <a href="/clientes" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem;">← Volver a Clientes</a>
-<h2 style="color: #FFFFFF; font-weight: 600; margin-top: 8px; margin-bottom: 20px;">Registrar Nuevo Cliente</h2>
+<h2 style="color: #FFFFFF; font-weight: 600; margin-top: 8px; margin-bottom: 20px;">
+    {% if cliente %}Editar Cliente: {{ cliente.nombre }}{% else %}Registrar Nuevo Cliente{% endif %}
+</h2>
+
+{% if error %}
+<div style="background: rgba(248, 113, 113, 0.1); border: 1px solid #F87171; color: #F87171; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 0.85rem;">
+    {{ error }}
+</div>
+{% endif %}
 
 <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 24px; max-width: 700px;">
-    <form action="/clientes/guardar" method="POST">
+    <form action="{% if cliente %}/clientes/{{ cliente.id }}/actualizar{% else %}/clientes/guardar{% endif %}" method="POST">
         <div class="venta-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
             
             <div class="form-group">
                 <label>NOMBRE COMPLETO *</label>
-                <input type="text" name="nombre" required placeholder="Ej. Mariana Gómez">
+                <input type="text" name="nombre" required value="{{ cliente.nombre if cliente else '' }}" placeholder="Ej. Mariana Gómez">
             </div>
 
             <div class="form-group">
                 <label>DOCUMENTO / CÉDULA</label>
-                <input type="text" name="documento" placeholder="Ej. 1017123456">
+                <input type="text" name="documento" value="{{ cliente.documento if cliente else '' }}" placeholder="Ej. 1017123456">
             </div>
 
             <div class="form-group">
                 <label>TELÉFONO / WHATSAPP</label>
-                <input type="text" name="telefono" placeholder="Ej. 3001234567">
+                <input type="text" name="telefono" value="{{ cliente.telefono if cliente else '' }}" placeholder="Ej. 3001234567">
             </div>
 
             <div class="form-group">
                 <label>CORREO ELECTRÓNICO</label>
-                <input type="email" name="email" placeholder="cliente@correo.com">
+                <input type="email" name="email" value="{{ cliente.email if cliente else '' }}" placeholder="cliente@correo.com">
             </div>
 
             <div class="form-group">
                 <label>CIUDAD</label>
-                <input type="text" name="ciudad" placeholder="Ej. Medellín / Bello">
+                <input type="text" name="ciudad" value="{{ cliente.ciudad if cliente else '' }}" placeholder="Ej. Medellín / Bello">
             </div>
 
             <div class="form-group">
                 <label>DIRECCIÓN DE ENVÍO</label>
-                <input type="text" name="direccion" placeholder="Ej. Cra 45 #23-10 Ap 302">
+                <input type="text" name="direccion" value="{{ cliente.direccion if cliente else '' }}" placeholder="Ej. Cra 45 #23-10 Ap 302">
             </div>
 
         </div>
 
         <div style="margin-top: 20px;" class="form-group">
             <label>NOTAS / PREFERENCIAS</label>
-            <input type="text" name="notas" placeholder="Tallas habituales, gustos, prendas de preferencia...">
+            <input type="text" name="notas" value="{{ cliente.notas if cliente else '' }}" placeholder="Tallas habituales, gustos, prendas de preferencia...">
         </div>
 
         <div style="display: flex; gap: 12px; margin-top: 24px;">
             <a href="/clientes" style="flex: 1; background: #283245; color: #FFF; text-decoration: none; text-align: center; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">Cancelar</a>
-            <button type="submit" class="btn-gold" style="flex: 1;">GUARDAR CLIENTE</button>
+            <button type="submit" class="btn-gold" style="flex: 1;">{% if cliente %}GUARDAR CAMBIOS{% else %}GUARDAR CLIENTE{% endif %}</button>
         </div>
     </form>
 </div>

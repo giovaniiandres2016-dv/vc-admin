@@ -1,10 +1,52 @@
 {% extends "base.html" %}
 
-{% block title %}VC ATELIER - Clientes{% endblock %}
+{% block title %}ATELIER VC - Clientes{% endblock %}
 
 {% block extra_head %}
-<!-- Estilos de DataTables -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<style>
+    .dataTables_wrapper {
+        color: #E2E8F0;
+        font-size: 0.85rem;
+    }
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_filter input {
+        background-color: #171D28;
+        border: 1px solid #283245;
+        color: #FFFFFF;
+        border-radius: 6px;
+        padding: 6px 10px;
+    }
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 12px;
+    }
+    .dataTables_wrapper .dataTables_length {
+        margin-bottom: 12px;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        margin-top: 12px;
+    }
+    .dataTables_wrapper .dataTables_info {
+        margin-top: 12px;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        color: #E2E8F0 !important;
+        border: 1px solid #283245 !important;
+        background: #171D28 !important;
+        border-radius: 6px;
+        margin: 0 2px;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #D4AF37 !important;
+        color: #000 !important;
+        border-color: #D4AF37 !important;
+        font-weight: bold;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #283245 !important;
+        color: #FFF !important;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -15,62 +57,60 @@
     </div>
     
     <div>
-        <a href="/clientes/nuevo" class="btn-gold" style="text-decoration: none; padding: 10px 18px; display: inline-block;">
+        <a href="/clientes/nuevo" class="btn-gold" style="text-decoration: none; padding: 0 18px; height: 38px; display: inline-flex; align-items: center; justify-content: center; text-align: center; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
             + Registrar Cliente
         </a>
     </div>
 </div>
 
-<!-- TABLA DE CLIENTES CON DATATABLES -->
 <div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 16px;">
-    <div class="table-responsive">
-        <table id="tablaClientes" class="display" style="width: 100%; color: #E2E8F0; font-size: 0.85rem;">
-            <thead>
-                <tr style="background-color: #171D28; border-bottom: 1px solid #1E2638; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">
-                    <th style="padding: 14px;">Cliente</th>
-                    <th style="padding: 14px;">Documento</th>
-                    <th style="padding: 14px;">Contacto</th>
-                    <th style="padding: 14px;">Ciudad</th>
-                    <th style="padding: 14px; text-align: center;">Compras</th>
-                    <th style="padding: 14px; text-align: right;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in clientes %}
-                <tr style="border-bottom: 1px solid #1E2638;">
-                    <td style="padding: 14px;">
-                        <span style="font-weight: 600; color: #FFFFFF; display: block;">{{ c.nombre }}</span>
-                        {% if c.email %}
-                        <span style="color: #64748B; font-size: 0.75rem;">{{ c.email }}</span>
-                        {% endif %}
-                    </td>
-                    <td style="padding: 14px; color: #94A3B8;">{{ c.documento or 'N/A' }}</td>
-                    <td style="padding: 14px; color: #94A3B8;">{{ c.telefono or 'N/A' }}</td>
-                    <td style="padding: 14px; color: #94A3B8;">{{ c.ciudad or 'N/A' }}</td>
-                    <td style="padding: 14px; text-align: center;">
-                        <span style="background: rgba(212, 175, 55, 0.1); color: #D4AF37; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
-                            {{ c.total_compras or 0 }}
-                        </span>
-                    </td>
-                    <td style="padding: 14px; text-align: right;">
-                        <a href="/clientes/{{ c.id }}" style="color: #3B82F6; text-decoration: none; font-size: 0.8rem; margin-right: 8px;">Ver Perfil</a>
-                        <a href="/clientes/{{ c.id }}/editar" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem;">Editar</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <table id="tablaClientes" class="display" style="width: 100%; color: #E2E8F0; font-size: 0.85rem;">
+        <thead>
+            <tr style="background-color: #171D28; border-bottom: 1px solid #1E2638; color: #94A3B8; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;">
+                <th style="padding: 14px;">Cliente</th>
+                <th style="padding: 14px;">Documento</th>
+                <th style="padding: 14px;">Contacto</th>
+                <th style="padding: 14px;">Ciudad</th>
+                <th style="padding: 14px; text-align: center;">Compras</th>
+                <th style="padding: 14px; text-align: right;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in clientes %}
+            <tr style="border-bottom: 1px solid #1E2638;">
+                <td style="padding: 14px;">
+                    <span style="font-weight: 600; color: #FFFFFF; display: block;">{{ c.nombre }}</span>
+                    {% if c.email %}
+                    <span style="color: #64748B; font-size: 0.75rem;">{{ c.email }}</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 14px; color: #94A3B8;">{{ c.documento or 'N/A' }}</td>
+                <td style="padding: 14px; color: #94A3B8;">{{ c.telefono or 'N/A' }}</td>
+                <td style="padding: 14px; color: #94A3B8;">{{ c.ciudad or 'N/A' }}</td>
+                <td style="padding: 14px; text-align: center;">
+                    <span style="background: rgba(212, 175, 55, 0.1); color: #D4AF37; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                        {{ c.total_compras or 0 }}
+                    </span>
+                </td>
+                <td style="padding: 14px; text-align: right;">
+                    <a href="/clientes/{{ c.id }}" style="color: #3B82F6; text-decoration: none; font-size: 0.8rem; margin-right: 8px;">Ver Perfil</a>
+                    <a href="/clientes/{{ c.id }}/editar" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem;">Editar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<!-- jQuery y JS de DataTables -->
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready(function() {
         $('#tablaClientes').DataTable({
+            "scrollY": "340px",
+            "scrollCollapse": false,
             "pageLength": 10,
             "language": {
                 "lengthMenu": "Mostrar _MENU_ registros por página",

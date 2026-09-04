@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, extract
+from sqlalchemy import or_, extract, func
 import bcrypt
 
 from config.database import SessionLocal, engine, Base
@@ -121,15 +121,36 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
     ganancia_neta = ingresos_totales - costo_total
     margen_porcentaje = (ganancia_neta / ingresos_totales * 100) if ingresos_totales > 0 else 0.0
 
-    # 4. Alerta de stock bajo (stock menor a 2)
+    # 4. Alerta de stock bajo (stock menor al límite operativo)
     stock_bajo_count = db.query(Producto).filter(Producto.stock < 2).count()
 
-    # --- LÓGICA DE ALERTA PUSH AL LOGUEARSE ---
     alerta_push = None
     if not request.session.get("alerta_stock_mostrada", False):
         if stock_bajo_count > 0:
             alerta_push = "Revisa tu stock"
             request.session["alerta_stock_mostrada"] = True
+
+    # 5. Calcular el Top 3 de Clientes del Mes
+    top_clientes_query = db.query(
+        Cliente, 
+        func.sum(Venta.total).label('total_gastado'),
+        func.count(Venta.id).label('cantidad_compras')
+    ).join(Venta, Venta.cliente_id == Cliente.id).filter(
+        Venta.estado == "COMPLETADA",
+        extract('year', Venta.fecha_venta) == anio_int,
+        extract('month', Venta.fecha_venta) == mes_int
+    ).group_by(Cliente.id).order_by(func.sum(Venta.total).desc()).limit(3).all()
+
+    top_clientes = []
+    for cliente, total_gastado, cantidad_compras in top_clientes_query:
+        top_clientes.append({
+            "nombre": cliente.nombre,
+            "total_gastado": total_gastado,
+            "cantidad_compras": cantidad_compras
+        })
+
+    # 6. Obtener ventas pendientes de anulación para mostrarlas en el dashboard
+    ventas_pendientes_anulacion = db.query(Venta).filter(Venta.estado == "SOLICITADA_ANULACION").all()
 
     return templates.TemplateResponse(
         request=request,
@@ -144,6 +165,8 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
             "stock_bajo": stock_bajo_count,
             "mes_actual": mes_actual,
             "ultimas_ventas": ventas_completadas[:5],
+            "top_clientes": top_clientes,
+            "ventas_pendientes_anulacion": ventas_pendientes_anulacion,
             "alerta_push": alerta_push
         }
     )
@@ -151,7 +174,7 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     if get_current_user(request):
-        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
     
     return templates.TemplateResponse(
         request=request,
@@ -174,7 +197,6 @@ async def login_post(
             "nombre": usuario.nombre,
             "rol": usuario.rol
         }
-        # Reiniciamos la bandera para que la alerta push aparezca en este nuevo inicio de sesión
         request.session["alerta_stock_mostrada"] = False
         return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     
@@ -248,7 +270,7 @@ async def vista_nuevo_cliente(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="cliente_nuevo.html",
-        context={"user": user, "cliente": None, "active_page": "clientes"}
+        context={"user": user, "cliente": None, "active_page": "clientes", "error": None}
     )
 
 @app.post("/clientes/guardar")
@@ -266,6 +288,20 @@ async def guardar_cliente(
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    if documento and documento.strip():
+        cliente_existente = db.query(Cliente).filter(Cliente.documento == documento.strip()).first()
+        if cliente_existente:
+            return templates.TemplateResponse(
+                request=request,
+                name="cliente_nuevo.html",
+                context={
+                    "user": user, 
+                    "cliente": None, 
+                    "active_page": "clientes",
+                    "error": "Ya existe un cliente registrado con este número de documento."
+                }
+            )
 
     nuevo_cliente = Cliente(
         nombre=nombre.strip(),
@@ -319,7 +355,7 @@ async def vista_editar_cliente(cliente_id: int, request: Request, db: Session = 
     return templates.TemplateResponse(
         request=request,
         name="cliente_nuevo.html",
-        context={"user": user, "cliente": cliente, "active_page": "clientes"}
+        context={"user": user, "cliente": cliente, "active_page": "clientes", "error": None}
     )
 
 @app.post("/clientes/{cliente_id}/actualizar")
@@ -341,6 +377,20 @@ async def actualizar_cliente(
 
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if cliente:
+        if documento and documento.strip():
+            duplicado = db.query(Cliente).filter(Cliente.documento == documento.strip(), Cliente.id != cliente_id).first()
+            if duplicado:
+                return templates.TemplateResponse(
+                    request=request,
+                    name="cliente_nuevo.html",
+                    context={
+                        "user": user, 
+                        "cliente": cliente, 
+                        "active_page": "clientes",
+                        "error": "Ya existe otro cliente registrado con este mismo documento."
+                    }
+                )
+
         cliente.nombre = nombre.strip()
         cliente.documento = documento.strip() if documento and documento.strip() else None
         cliente.telefono = telefono.strip() if telefono and telefono.strip() else None
@@ -554,6 +604,9 @@ async def listar_inventario(request: Request, q: Optional[str] = None, db: Sessi
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
+    # Capturar la alerta guardada en sesión tras la importación del Excel y eliminarla
+    alerta_push = request.session.pop("alerta_importacion", None)
+
     query = db.query(Producto)
     if q and q.strip():
         search_term = f"%{q.strip()}%"
@@ -572,7 +625,8 @@ async def listar_inventario(request: Request, q: Optional[str] = None, db: Sessi
             "user": user,
             "productos": productos,
             "busqueda": q,
-            "active_page": "inventario"
+            "active_page": "inventario",
+            "alerta_push": alerta_push
         }
     )
 
@@ -585,7 +639,7 @@ async def vista_nuevo_producto(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="producto_nuevo.html",
-        context={"user": user, "producto": None, "active_page": "inventario"}
+        context={"user": user, "producto": None, "active_page": "inventario", "error": None}
     )
 
 @app.post("/inventario/guardar")
@@ -606,6 +660,26 @@ async def guardar_producto(
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    if user.get("rol") not in ["ADMIN", "COLABORADOR"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado: No tienes permisos para crear o modificar productos en el inventario."
+        )
+
+    if codigo and codigo.strip():
+        prod_existente = db.query(Producto).filter(Producto.codigo == codigo.strip()).first()
+        if prod_existente:
+            return templates.TemplateResponse(
+                request=request,
+                name="producto_nuevo.html",
+                context={
+                    "user": user, 
+                    "producto": None, 
+                    "active_page": "inventario",
+                    "error": "Ya existe un producto registrado con este mismo código."
+                }
+            )
 
     nuevo_prod = Producto(
         nombre=nombre.strip(),
@@ -634,6 +708,12 @@ async def importar_inventario(
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
     
+    if user.get("rol") not in ["ADMIN", "COLABORADOR"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado: No tienes permisos para importar inventario."
+        )
+
     if not archivo_excel.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Formato de archivo inválido. Debe ser un archivo Excel (.xlsx o .xls).")
     
@@ -641,16 +721,13 @@ async def importar_inventario(
         contenido = await archivo_excel.read()
         df = pd.read_excel(io.BytesIO(contenido))
         
-        # Normalizar nombres de columnas a minúsculas
         df.columns = [str(col).strip().lower() for col in df.columns]
         
-        # Validar columnas mínimas requeridas
         required_cols = ['nombre', 'precio', 'stock']
         for col in required_cols:
             if col not in df.columns:
                 raise HTTPException(status_code=400, detail=f"Falta la columna obligatoria en el Excel: {col}")
         
-        # Recorrer filas e insertar/actualizar en la Base de Datos
         for _, row in df.iterrows():
             codigo = str(row.get('codigo', 'S/C')) if pd.notna(row.get('codigo')) else 'S/C'
             nombre = str(row['nombre'])
@@ -686,6 +763,14 @@ async def importar_inventario(
                 db.add(nuevo_prod)
         
         db.commit()
+
+        # Calcular cuántos productos tienen bajo stock o están agotados (5 unidades o menos)
+        stock_bajo_count = db.query(Producto).filter(Producto.stock <= 5).count()
+        if stock_bajo_count > 0:
+            request.session["alerta_importacion"] = f"¡Inventario importado con éxito! ⚠️ Atención: Hay {stock_bajo_count} producto(s) con stock crítico o agotado (5 o menos unidades)."
+        else:
+            request.session["alerta_importacion"] = "¡Inventario importado con éxito! Todo el stock se encuentra en niveles óptimos."
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al procesar el archivo Excel: {str(e)}")
@@ -705,21 +790,19 @@ async def vista_editar_producto(producto_id: int, request: Request, db: Session 
     return templates.TemplateResponse(
         request=request,
         name="producto_nuevo.html",
-        context={"user": user, "producto": producto, "active_page": "inventario"}
+        context={"user": user, "producto": producto, "active_page": "inventario", "error": None}
     )
 
 @app.post("/inventario/{producto_id}/actualizar")
 async def actualizar_producto(
     producto_id: int,
     request: Request,
-    nombre: str,
+    nombre: str = Form(...),
     categoria: str = Form(...),
     marca: str = Form(...),
     referencia: str = Form(...),
     color: str = Form(...),
     talla: str = Form(...),
-    codigo: Optional[str] = Form(None),
-    precio: float = Form(...),
     precio_costo: float = Form(0.0),
     stock: int = Form(...),
     db: Session = Depends(get_db)
@@ -729,19 +812,63 @@ async def actualizar_producto(
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
     producto = db.query(Producto).filter(Producto.id == producto_id).first()
-    if producto:
-        producto.nombre = nombre.strip()
-        producto.categoria = categoria
-        producto.marca = marca.strip()
-        producto.referencia = referencia.strip()
-        producto.color = color.strip()
-        producto.talla = talla.strip()
-        producto.codigo = codigo.strip() if codigo and codigo.strip() else None
-        producto.precio = precio
-        producto.precio_costo = precio_costo
-        producto.stock = stock
-        db.commit()
+    if not producto:
+        return RedirectResponse(url="/inventario", status_code=status.HTTP_303_SEE_OTHER)
 
+    if user.get("rol") not in ["ADMIN", "COLABORADOR"]:
+        return templates.TemplateResponse(
+            request=request,
+            name="producto_nuevo.html",
+            context={
+                "user": user, 
+                "producto": producto, 
+                "active_page": "inventario",
+                "error": "Acceso denegado: No cuentas con permisos para modificar registros del inventario."
+            }
+        )
+
+    producto.nombre = nombre.strip()
+    producto.categoria = categoria
+    producto.marca = marca.strip()
+    producto.referencia = referencia.strip()
+    producto.color = color.strip()
+    producto.talla = talla.strip()
+    producto.precio_costo = precio_costo
+    producto.stock = stock
+    db.commit()
+
+    return RedirectResponse(url="/inventario", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post("/inventario/{producto_id}/eliminar-directo")
+async def eliminar_producto_directo(
+    producto_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    require_admin(request)
+    producto = db.query(Producto).filter(Producto.id == producto_id).first()
+    if producto:
+        db.delete(producto)
+        db.commit()
+    return RedirectResponse(url="/inventario", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.post("/inventario/{producto_id}/procesar-solicitud-eliminacion")
+async def procesar_solicitud_eliminacion(
+    producto_id: int,
+    request: Request,
+    accion: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    require_admin(request)
+    producto = db.query(Producto).filter(Producto.id == producto_id).first()
+    if producto:
+        if hasattr(producto, "solicitud_eliminacion"):
+            if accion == "aprobar":
+                db.delete(producto)
+            elif accion == "rechazar":
+                producto.solicitud_eliminacion = False
+                producto.motivo_eliminacion = None
+            db.commit()
     return RedirectResponse(url="/inventario", status_code=status.HTTP_303_SEE_OTHER)
 
 @app.get("/ventas/{venta_id}/factura", response_class=HTMLResponse)
@@ -759,4 +886,3 @@ async def ver_factura(venta_id: int, request: Request, db: Session = Depends(get
         name="factura.html",
         context={"user": user, "venta": venta}
     )
-

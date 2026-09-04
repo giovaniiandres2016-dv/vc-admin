@@ -1,12 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}VC ATELIER - {% if producto %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
+{% block title %}ATELIER VC - {% if producto %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
 
 {% block content %}
 <a href="/inventario" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem;">← Volver al Inventario</a>
 <h2 style="color: #FFFFFF; font-weight: 600; margin-top: 8px; margin-bottom: 20px;">
     {% if producto %}Editar Producto: {{ producto.nombre }}{% else %}Registrar Nuevo Producto{% endif %}
 </h2>
+
+<!-- ALERTA VISUAL SI EXISTE UN ERROR -->
+{% if error %}
+<div style="background: #7F1D1D; border: 1px solid #EF4444; color: #FCA5A5; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;">
+    <span>⚠️</span> <strong>{{ error }}</strong>
+</div>
+{% endif %}
 
 <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 24px; max-width: 750px;">
     <form action="{% if producto %}/inventario/{{ producto.id }}/actualizar{% else %}/inventario/guardar{% endif %}" method="POST">
@@ -27,7 +34,7 @@
             <!-- MARCA -->
             <div class="form-group">
                 <label>MARCA *</label>
-                <input type="text" id="inputMarca" name="marca" required value="{{ producto.marca if producto else '' }}" placeholder="Ej. ÉPIKA / Zara">
+                <input type="text" id="inputMarca" name="marca" required value="{{ producto.marca if producto else '' }}" placeholder="Ej. Nike / Zara">
             </div>
 
             <!-- REFERENCIA -->
@@ -55,21 +62,28 @@
                        style="background: #171D28; border: 1px solid #D4AF37; color: #D4AF37; font-weight: 600;" placeholder="Se generará solo...">
             </div>
 
+            <!-- CÓDIGO / SKU -->
             <div class="form-group">
                 <label>CÓDIGO / SKU</label>
-                <input type="text" name="codigo" value="{{ producto.codigo if producto else '' }}" placeholder="Ej. EPI-502-NE">
+                <input type="text" name="codigo" value="{{ producto.codigo if producto else '' }}" {% if producto %}disabled{% endif %} placeholder="Ej. EPI-502-NE">
             </div>
 
-            <!-- PRECIO DE COSTO EN COP -->
+            <!-- PRECIO DE COSTO (Habilitado si es nuevo, bloqueado en edición para no admins según corresponda) -->
             <div class="form-group">
                 <label style="color: #60A5FA;">PRECIO DE COSTO ($ COP) *</label>
-                <input type="number" step="1" name="precio_costo" required value="{{ producto.precio_costo | int if producto and producto.precio_costo is not none else '' }}" placeholder="Ej. 60000" style="border-color: #3b82f6;">
+                <input type="number" step="1" name="precio_costo" required 
+                       value="{{ producto.precio_costo | int if producto and producto.precio_costo is not none else '' }}" 
+                       {% if producto and user.rol != 'ADMIN' %}disabled{% endif %} 
+                       placeholder="Ej. 60000" style="border-color: #3b82f6;">
             </div>
 
-            <!-- PRECIO DE VENTA EN COP -->
+            <!-- PRECIO DE VENTA (Habilitado para registrar nuevo producto completo, bloqueado solo al editar) -->
             <div class="form-group">
                 <label>PRECIO DE VENTA ($ COP) *</label>
-                <input type="number" step="1" name="precio" required value="{{ producto.precio | int if producto and producto.precio is not none else '' }}" placeholder="Ej. 120000">
+                <input type="number" step="1" name="precio" required 
+                       value="{{ producto.precio | int if producto and producto.precio is not none else '' }}" 
+                       {% if producto %}disabled{% endif %} 
+                       placeholder="Ej. 120000">
             </div>
 
             <div class="form-group" style="grid-column: span 2;">

@@ -3,11 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}VC ATELIER{% endblock %}</title>
+    <title>{% block title %}ATELIER VC{% endblock %}</title>
     
     <!-- CSS Principal con parámetro anti-caché -->
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}?v=99.0">
     
+<style>
+        /* --- RESET Y ESCALA GLOBAL PARA TODO EL SISTEMA AL 100% --- */
+        body {
+            font-size: 0.82rem !important;
+            background-color: #0b0f15;
+            color: #E2E8F0;
+        }
+
+        /* --- CONTENEDORES Y TARJETAS COMPACTAS --- */
+        .card, .venta-grid > div, div[style*="background: #11151C"], form > div {
+            padding: 16px !important;
+        }
+
+        /* --- INPUTS Y SELECTS GENERALES (EXCEPTO EN TABLAS) --- */
+        input[type="text"]:not(.no-global), 
+        input[type="number"]:not(.no-global), 
+        input[type="email"], 
+        input[type="password"], 
+        input[type="date"],
+        select:not(td select) {
+            height: 36px !important;
+            background-color: #171D28 !important;
+            border: 1px solid #283245 !important;
+            color: #FFFFFF !important;
+            padding: 6px 10px !important;
+            border-radius: 6px !important;
+            font-size: 0.82rem !important;
+            box-sizing: border-box !important;
+        }
+
+        input:focus, select:focus {
+            border-color: #D4AF37 !important;
+            outline: none !important;
+        }
+
+        /* --- SELECT2 (BUSCADORES INTERACTIVOS) --- */
+        .select2-container {
+            width: 100% !important;
+        }
+        .select2-container--default .select2-selection--single {
+            background-color: #171D28 !important;
+            border: 1px solid #283245 !important;
+            border-radius: 6px !important;
+            height: 36px !important;
+            display: flex;
+            align-items: center;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #FFFFFF !important;
+            font-size: 0.82rem !important;
+            line-height: 36px !important;
+            padding-left: 10px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 34px !important;
+            right: 6px;
+        }
+        .select2-dropdown {
+            background-color: #11151C !important;
+            border: 1px solid #283245 !important;
+            border-radius: 6px !important;
+            color: #FFFFFF !important;
+            font-size: 0.82rem !important;
+        }
+        .select2-search--dropdown .select2-search__field {
+            background-color: #171D28 !important;
+            border: 1px solid #283245 !important;
+            color: #FFFFFF !important;
+            border-radius: 4px !important;
+            padding: 6px !important;
+        }
+
+        /* --- TABLAS ESTILIZADAS Y FINAS --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table th {
+            padding: 8px 10px !important;
+            font-size: 0.72rem !important;
+            color: #94A3B8 !important;
+            text-transform: uppercase;
+            border-bottom: 1px solid #1E2638 !important;
+            text-align: left;
+        }
+        table td {
+            padding: 9px 10px !important;
+            font-size: 0.82rem !important;
+            border-bottom: 1px solid #1E2638 !important;
+            color: #E2E8F0;
+        }
+
+        /* --- BOTONES PRINCIPALES (SE EXCLUYEN BOTONES DE TABLAS) --- */
+        button:not(td button), .btn-gold {
+            height: 36px !important;
+            padding: 0 14px !important;
+            font-size: 0.8rem !important;
+            font-weight: 600;
+            border-radius: 6px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+
     {% block extra_head %}{% endblock %}
 
     <!-- jQuery y JS de DataTables -->
@@ -20,7 +126,7 @@
         <aside class="sidebar">
             <div class="sidebar-top">
                 <img src="{{ url_for('static', path='img/logo.png') }}" alt="VC Atelier Logo" class="sidebar-logo">
-                <h2 class="brand-title" style="font-size: 1.1rem;">VC ATELIER</h2>
+                <h2 class="brand-title" style="font-size: 1.1rem;">ATELIER VC</h2>
                 <p class="brand-sub">ROL: {{ user.rol }}</p>
                 
                 <nav class="sidebar-nav">

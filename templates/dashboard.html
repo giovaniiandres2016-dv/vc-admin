@@ -1,17 +1,38 @@
 {% extends "base.html" %}
 
-{% block title %}VC ATELIER - Panel de Control{% endblock %}
+{% block title %}ATELIER VC - Panel de Control{% endblock %}
 
 {% block content %}
-<!-- ALERTA PUSH AL INICIAR SESIÓN (SI STOCK < 2) -->
-{% if alerta_push %}
-<div id="push-alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; background: linear-gradient(135deg, #2c1a1a 0%, #1a1111 100%); border: 1px solid #e53e3e; color: #fff; padding: 16px 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 15px; animation: slideIn 0.5s ease-out;">
-    <div style="font-size: 1.5rem;">🔔</div>
-    <div>
-        <h4 style="margin: 0 0 4px 0; color: #feb2b2; font-size: 0.95rem;">Alerta de Inventario</h4>
-        <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1;">{{ alerta_push }}</p>
+<!-- CONTENEDOR FLOTANTE DE ALERTAS PUSH (APILADAS UNA DEBAJO DE LA OTRA) -->
+<div style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 360px; pointer-events: none;">
+    
+    <!-- 1. ALERTA PUSH DE INVENTARIO (SI STOCK < 2) -->
+    {% if alerta_push %}
+    <div id="push-alert" style="pointer-events: auto; background: linear-gradient(135deg, #2c1a1a 0%, #1a1111 100%); border: 1px solid #e53e3e; color: #fff; padding: 14px 18px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; animation: slideIn 0.5s ease-out;">
+        <div style="font-size: 1.4rem;">🔔</div>
+        <div style="flex-grow: 1;">
+            <h4 style="margin: 0 0 2px 0; color: #feb2b2; font-size: 0.9rem;">Alerta de Inventario</h4>
+            <p style="margin: 0; font-size: 0.8rem; color: #cbd5e1;">{{ alerta_push }}</p>
+        </div>
+        <button onclick="document.getElementById('push-alert').style.display='none'" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
     </div>
-    <button onclick="document.getElementById('push-alert').style.display='none'" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; margin-left: 10px;">&times;</button>
+    {% endif %}
+
+    <!-- 2. ALERTA PUSH: VENTAS PENDIENTES DE ANULACIÓN (SOLO ADMIN) -->
+    {% if user.rol == 'ADMIN' and ventas_pendientes_anulacion and ventas_pendientes_anulacion | length > 0 %}
+    <div id="push-alerta-anulacion" style="pointer-events: auto; background: linear-gradient(135deg, #2c1a1a 0%, #1a1111 100%); border: 1px solid #e53e3e; color: #fff; padding: 14px 18px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; animation: slideIn 0.5s ease-out;">
+        <div style="font-size: 1.4rem;">⚠️</div>
+        <div style="flex-grow: 1;">
+            <h4 style="margin: 0 0 2px 0; color: #feb2b2; font-size: 0.9rem;">Solicitudes de Anulación</h4>
+            <p style="margin: 0; font-size: 0.8rem; color: #cbd5e1;">
+                Hay <strong>{{ ventas_pendientes_anulacion | length }}</strong> venta(s) pendiente(s). 
+                <a href="/ventas/anulaciones" style="color: #f6ad55; text-decoration: underline;">Revisar</a>
+            </p>
+        </div>
+        <button onclick="document.getElementById('push-alerta-anulacion').style.display='none'" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">&times;</button>
+    </div>
+    {% endif %}
+
 </div>
 
 <style>
@@ -19,7 +40,42 @@
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
+
+/* Scroll estético para paneles internos */
+.custom-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+    background: #11151C;
+    border-radius: 4px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: #283245;
+    border-radius: 4px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: #D4AF37;
+}
 </style>
+
+<!-- CONTENEDOR DE ALERTAS DE VENTAS PENDIENTES POR ANULAR (DENTRO DEL FLUJO PRINCIPAL - SOLO ADMIN) -->
+{% if user.rol == 'ADMIN' and ventas_pendientes_anulacion and ventas_pendientes_anulacion | length > 0 %}
+<div id="alertas-sistema-container" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+    {% for v in ventas_pendientes_anulacion %}
+    <div class="alerta-card alerta-anulacion-pendiente" style="background: #11151C; border: 1px solid #283245; border-left: 4px solid #E06C75; border-radius: 8px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);">
+        <div style="display: flex; align-items: center; gap: 14px; color: #E2E8F0; font-size: 0.8rem;">
+            <i class="fas fa-exclamation-triangle" style="color: #E06C75; font-size: 1.1rem;"></i>
+            <div>
+                <strong style="display: block; color: #FFFFFF; margin-bottom: 2px; font-size: 0.85rem;">Venta #{{ v.id }} - Solicitud de Anulación Pendiente</strong>
+                <span style="color: #94A3B8; font-size: 0.75rem;">Cliente: {{ v.cliente.nombre if v.cliente else 'Cliente General' }} | Total: ${{ "{:,.0f}".format(v.total) }} ({{ v.fecha_venta.strftime('%Y-%m-%d %H:%M') }})</span>
+            </div>
+        </div>
+        <a href="/ventas/anulaciones" class="btn-aprobar-anulacion" style="background: #171D28; color: #FACC15; border: 1px solid rgba(250, 204, 21, 0.3); padding: 6px 14px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-decoration: none; text-align: center; transition: all 0.2s ease;">
+            Gestionar
+        </a>
+    </div>
+    {% endfor %}
+</div>
 {% endif %}
 
 <!-- HEADER Y SELECTOR DE MES -->
@@ -72,34 +128,76 @@
 
 </div>
 
-<!-- SECCIÓN DE ACTIVIDAD RECIENTE Y ACCESOS RÁPIDOS -->
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start;">
-    
-    <!-- Últimas Ventas Feed -->
-    <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
-        <h4 style="color: #FFFFFF; font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid #1E2638; padding-bottom: 8px;">Actividad Comercial del Período</h4>
-        {% if ultimas_ventas %}
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            {% for v in ultimas_ventas %}
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #171D28; padding: 10px 14px; border-radius: 6px; font-size: 0.85rem;">
+<!-- SECCIÓN DE ACTIVIDAD COMERCIAL Y TOP 3 CLIENTES -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; align-items: start;">
+
+    <!-- Actividad Comercial del Período (Con Altura Controlada y Scroll Interno) -->
+    <div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+        <h3 style="color: #FFF; font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid #1E2638; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <span>Actividad Comercial del Período</span>
+            <span style="font-size: 0.75rem; color: #94A3B8; font-weight: normal;">(Últimas transacciones)</span>
+        </h3>
+        
+        <!-- Contenedor con altura máxima y scroll interno para prevenir expansión de la página -->
+        <div style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 6px;" class="custom-scroll">
+            {% for venta in ultimas_ventas %}
+            <div style="background: #171D28; border: 1px solid #283245; border-radius: 6px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <span style="color: #D4AF37; font-weight: 600;">#{{ v.id }}</span>
-                    <span style="color: #94A3B8; margin-left: 8px;">{{ v.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</span>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <span style="color: #D4AF37; font-weight: 600; font-size: 0.9rem;">#{{ venta.id }}</span>
+                        <span style="color: #94A3B8; font-size: 0.75rem;">{{ venta.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    <p style="color: #FFF; font-size: 0.85rem; font-weight: 500; margin-bottom: 2px;">
+                        Cliente: <span style="color: #E2E8F0;">{{ venta.cliente.nombre if venta.cliente else 'Cliente General / Mostrador' }}</span>
+                    </p>
+                    <p style="color: #94A3B8; font-size: 0.75rem;">
+                        Artículos: 
+                        {% for det in venta.detalles %}
+                            {{ det.cantidad }}x {{ det.producto.nombre }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </p>
                 </div>
                 <div style="text-align: right;">
-                    <span style="color: #FFFFFF; font-weight: 600;">${{ "{:,.0f}".format(v.total) }}</span>
-                    <span style="background: #065F46; color: #34D399; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">{{ v.metodo_pago }}</span>
+                    <span style="display: block; color: #FFF; font-weight: 600; font-size: 0.95rem; margin-bottom: 4px;">${{ "{:,.0f}".format(venta.total) }}</span>
+                    <span style="background: #065F46; color: #34D399; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">{{ venta.metodo_pago }}</span>
                 </div>
             </div>
+            {% else %}
+            <p style="color: #64748B; font-size: 0.85rem; text-align: center; padding: 20px 0;">No hay ventas registradas en este período.</p>
             {% endfor %}
         </div>
-        {% else %}
-        <p style="color: #94A3B8; font-size: 0.85rem; text-align: center; padding: 20px 0;">No hay ventas completadas registradas en este mes.</p>
-        {% endif %}
     </div>
 
-    <!-- Panel de Accesos Rápidos -->
-    <div style="display: flex; flex-direction: column; gap: 16px;">
+    <!-- Panel de Accesos Rápidos y Top 3 Clientes -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Top 3 de Clientes del Mes -->
+        <div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
+            <h3 style="color: #FFF; font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid #1E2638; padding-bottom: 8px;">Top 3 Clientes del Mes</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                {% for c in top_clientes %}
+                <div style="background: #171D28; border: 1px solid #283245; border-radius: 6px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: {% if loop.index == 1 %}#D4AF37{% elif loop.index == 2 %}#94A3B8{% else %}#B45309{% endif %}; color: #11151C; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem;">
+                            {{ loop.index }}
+                        </span>
+                        <div>
+                            <span style="display: block; color: #FFF; font-size: 0.8rem; font-weight: 600;">{{ c.nombre }}</span>
+                            <span style="display: block; color: #94A3B8; font-size: 0.7rem;">{{ c.cantidad_compras }} compra(s)</span>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="color: #D4AF37; font-weight: 600; font-size: 0.8rem;">${{ "{:,.0f}".format(c.total_gastado) }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <p style="color: #64748B; font-size: 0.8rem; text-align: center; padding: 15px 0;">Aún no hay datos de clientes este mes.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Panel de Accesos Rápidos -->
         <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
             <h4 style="color: #FFFFFF; font-size: 0.95rem; font-weight: 600; margin-bottom: 12px;">Acciones Rápidas</h4>
             <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -110,6 +208,7 @@
                 {% endif %}
             </div>
         </div>
+
     </div>
 
 </div>
