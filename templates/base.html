@@ -130,7 +130,10 @@
                 <p class="brand-sub">ROL: {{ user.rol }}</p>
                 
                 <nav class="sidebar-nav">
+                    {% if user.rol == 'ADMIN' %}
                     <a href="/" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">Dashboard</a>
+                    {% endif %}
+                    
                     <a href="/ventas" class="nav-link {% if active_page == 'ventas' %}active{% endif %}">Ventas</a>
                     <a href="/inventario" class="nav-link {% if active_page == 'inventario' %}active{% endif %}">Inventario</a>
                     <a href="/clientes" class="nav-link {% if active_page == 'clientes' %}active{% endif %}">Clientes</a>

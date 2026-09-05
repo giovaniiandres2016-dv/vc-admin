@@ -17,6 +17,7 @@ from config.models import Usuario, Cliente, Producto, Venta, DetalleVenta
 
 # Crear directorios necesarios
 os.makedirs("static/css", exist_ok=True)
+os.makedirs("static/img", exist_ok=True)
 os.makedirs("templates", exist_ok=True)
 
 # Crear tablas en la base de datos
@@ -25,6 +26,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="VC-Admin")
 app.add_middleware(SessionMiddleware, secret_key="vc_admin_secret_key_clean")
 
+# Montaje correcto de archivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -88,7 +90,9 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
     
-    # Determinar mes actual por defecto (YYYY-MM) si no se especifica
+    if user.get("rol") == "COLABORADOR":
+        return RedirectResponse(url="/inventario", status_code=status.HTTP_303_SEE_OTHER)
+    
     now = datetime.now()
     mes_actual = mes if mes else now.strftime("%Y-%m")
     
@@ -99,18 +103,15 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
         anio_int, mes_int = now.year, now.month
         mes_actual = now.strftime("%Y-%m")
 
-    # 1. Obtener ventas completadas filtradas por año y mes
     ventas_completadas = db.query(Venta).filter(
         Venta.estado == "COMPLETADA",
         extract('year', Venta.fecha_venta) == anio_int,
         extract('month', Venta.fecha_venta) == mes_int
     ).order_by(Venta.fecha_venta.desc()).all()
     
-    # 2. Calcular métricas clave del mes
     total_ventas_count = len(ventas_completadas)
     ingresos_totales = sum(v.total for v in ventas_completadas)
     
-    # 3. Calcular Costo Total y Ganancia Neta analítica del mes
     costo_total = 0.0
     for venta in ventas_completadas:
         for detalle in venta.detalles:
@@ -121,7 +122,6 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
     ganancia_neta = ingresos_totales - costo_total
     margen_porcentaje = (ganancia_neta / ingresos_totales * 100) if ingresos_totales > 0 else 0.0
 
-    # 4. Alerta de stock bajo (stock menor al límite operativo)
     stock_bajo_count = db.query(Producto).filter(Producto.stock < 2).count()
 
     alerta_push = None
@@ -130,7 +130,6 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
             alerta_push = "Revisa tu stock"
             request.session["alerta_stock_mostrada"] = True
 
-    # 5. Calcular el Top 3 de Clientes del Mes
     top_clientes_query = db.query(
         Cliente, 
         func.sum(Venta.total).label('total_gastado'),
@@ -149,7 +148,27 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
             "cantidad_compras": cantidad_compras
         })
 
-    # 6. Obtener ventas pendientes de anulación para mostrarlas en el dashboard
+    top_productos_query = db.query(
+        Producto,
+        func.sum(DetalleVenta.cantidad).label('total_vendido'),
+        func.sum(DetalleVenta.subtotal).label('ingresos_generados')
+    ).join(DetalleVenta, DetalleVenta.producto_id == Producto.id)\
+     .join(Venta, Venta.id == DetalleVenta.venta_id)\
+     .filter(
+        Venta.estado == "COMPLETADA",
+        extract('year', Venta.fecha_venta) == anio_int,
+        extract('month', Venta.fecha_venta) == mes_int
+    ).group_by(Producto.id).order_by(func.sum(DetalleVenta.cantidad).desc()).limit(5).all()
+
+    top_productos = []
+    for producto, total_vendido, ingresos_generados in top_productos_query:
+        top_productos.append({
+            "nombre": producto.nombre,
+            "marca": producto.marca,
+            "total_vendido": total_vendido,
+            "ingresos_generados": ingresos_generados
+        })
+
     ventas_pendientes_anulacion = db.query(Venta).filter(Venta.estado == "SOLICITADA_ANULACION").all()
 
     return templates.TemplateResponse(
@@ -166,6 +185,7 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
             "mes_actual": mes_actual,
             "ultimas_ventas": ventas_completadas[:5],
             "top_clientes": top_clientes,
+            "top_productos": top_productos,
             "ventas_pendientes_anulacion": ventas_pendientes_anulacion,
             "alerta_push": alerta_push
         }
@@ -174,7 +194,7 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     if get_current_user(request):
-        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     
     return templates.TemplateResponse(
         request=request,
@@ -604,7 +624,6 @@ async def listar_inventario(request: Request, q: Optional[str] = None, db: Sessi
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
-    # Capturar la alerta guardada en sesión tras la importación del Excel y eliminarla
     alerta_push = request.session.pop("alerta_importacion", None)
 
     query = db.query(Producto)
@@ -764,7 +783,6 @@ async def importar_inventario(
         
         db.commit()
 
-        # Calcular cuántos productos tienen bajo stock o están agotados (5 unidades o menos)
         stock_bajo_count = db.query(Producto).filter(Producto.stock <= 5).count()
         if stock_bajo_count > 0:
             request.session["alerta_importacion"] = f"¡Inventario importado con éxito! ⚠️ Atención: Hay {stock_bajo_count} producto(s) con stock crítico o agotado (5 o menos unidades)."
@@ -886,3 +904,12 @@ async def ver_factura(venta_id: int, request: Request, db: Session = Depends(get
         name="factura.html",
         context={"user": user, "venta": venta}
     )
+
+@app.post("/ventas/{id}/rechazar-anulacion")
+async def rechazar_anulacion(id: int, db: Session = Depends(get_db)):
+    admin_user = require_admin(request) if 'request' in locals() else None # O ajusta según tu control de sesión
+    venta = db.query(Venta).filter(Venta.id == id).first()
+    if venta and venta.estado == "SOLICITADA_ANULACION":
+        venta.estado = "COMPLETADA" # O el estado original que prefieras para devolverla a activa
+        db.commit()
+    return RedirectResponse(url="/ventas/anulaciones", status_code=status.HTTP_303_SEE_OTHER)

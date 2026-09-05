@@ -13,18 +13,25 @@
 <div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 16px; margin-bottom: 32px;">
     {% for s in solicitudes %}
     <div style="border-bottom: 1px solid #1E2638; padding-bottom: 16px; margin-bottom: 16px;">
-        <p style="color: #FFFFFF; font-weight: 600;">Venta #{{ s.id }} - Total: ${{ "{:,.0f}".format(s.total).replace(',', '.') }} ({{ s.metodo_pago }})</p>
-        <p style="color: #94A3B8; font-size: 0.8rem; margin-top: 4px;">Registrada el: {{ s.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</p>
+        <p style="color: #FFFFFF; font-weight: 600; margin: 0 0 4px 0;">Venta #{{ s.id }} - Total: ${{ "{:,.0f}".format(s.total).replace(',', '.') }} ({{ s.metodo_pago }})</p>
+        <p style="color: #94A3B8; font-size: 0.8rem; margin: 0 0 12px 0;">Registrada el: {{ s.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</p>
         
-        <form action="/ventas/{{ s.id }}/procesar-anulacion" method="POST" class="flex-row-responsive" style="margin-top: 12px;">
-            <input type="text" name="motivo" placeholder="Motivo de la anulación (Obligatorio)..." required style="flex: 1; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px 12px; border-radius: 4px; font-size: 0.85rem;">
-            <button type="submit" style="background: #F87171; color: #FFF; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.8rem; width: auto;">
+        <form action="/ventas/{{ s.id }}/procesar-anulacion" method="POST" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="text" name="motivo" placeholder="Motivo de la anulación (Obligatorio para aprobar)..." required style="flex: 1; min-width: 240px; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px 12px; border-radius: 4px; font-size: 0.85rem;">
+            
+            <!-- Botón para Confirmar / Aprobar Anulación -->
+            <button type="submit" style="background: #F87171; color: #FFF; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.8rem; white-space: nowrap;">
                 Confirmar Anulación
+            </button>
+
+            <!-- Botón para Rechazar Solicitud (Envía una acción separada a otra ruta) -->
+            <button type="submit" formaction="/ventas/{{ s.id }}/rechazar-anulacion" formnovalidate style="background: #334155; color: #E2E8F0; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.8rem; white-space: nowrap;">
+                Rechazar
             </button>
         </form>
     </div>
     {% else %}
-    <p style="color: #64748B; font-size: 0.85rem;">No hay solicitudes de anulación pendientes.</p>
+    <p style="color: #64748B; font-size: 0.85rem; margin: 0;">No hay solicitudes de anulación pendientes.</p>
     {% endfor %}
 </div>
 

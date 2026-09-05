@@ -1,7 +1,12 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from config.database import Base
+
+def hora_colombia():
+    """Devuelve la hora actual en Colombia sin zona horaria adjunta para la base de datos."""
+    return datetime.now(ZoneInfo("America/Bogota")).replace(tzinfo=None)
 
 class Usuario(Base):
     __tablename__ = "usuarios"
@@ -12,7 +17,7 @@ class Usuario(Base):
     password_hash = Column(String(255), nullable=False)
     rol = Column(String(20), default="COLABORADOR")  # "ADMIN" o "COLABORADOR"
     activo = Column(Boolean, default=True)
-    creado_en = Column(DateTime, default=datetime.utcnow)
+    creado_en = Column(DateTime, default=hora_colombia)
 
 
 class Cliente(Base):
@@ -26,7 +31,7 @@ class Cliente(Base):
     ciudad = Column(String(50), nullable=True)
     direccion = Column(String(150), nullable=True)
     notas = Column(Text, nullable=True)
-    creado_en = Column(DateTime, default=datetime.utcnow)
+    creado_en = Column(DateTime, default=hora_colombia)
 
     ventas = relationship("Venta", back_populates="cliente")
 
@@ -43,9 +48,9 @@ class Producto(Base):
     talla = Column(String(20), nullable=True)
     codigo = Column(String(50), unique=True, nullable=True)
     precio = Column(Float, nullable=False)  # Precio de venta
-    precio_costo = Column(Float, default=0.0)  # <-- NUEVO: Precio en que nos sale
+    precio_costo = Column(Float, default=0.0)  # Precio en que nos sale
     stock = Column(Integer, default=0)
-    creado_en = Column(DateTime, default=datetime.utcnow)
+    creado_en = Column(DateTime, default=hora_colombia)
 
 
 class Venta(Base):
@@ -63,7 +68,7 @@ class Venta(Base):
     anulado_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     fecha_anulacion = Column(DateTime, nullable=True)
     
-    fecha_venta = Column(DateTime, default=datetime.utcnow)
+    fecha_venta = Column(DateTime, default=hora_colombia)
 
     # Relaciones
     cliente = relationship("Cliente", back_populates="ventas")

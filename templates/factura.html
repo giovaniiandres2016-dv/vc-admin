@@ -2,179 +2,168 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Factura #{{ venta.id }}</title>
+    <title>Factura Electrónica de Venta - Atelier VC</title>
     <style>
-        /* Estilos generales para pantalla (vista previa) */
+        /* Estilos estrictamente optimizados para POS térmica de 80mm */
         body {
+            background-color: #fff;
             font-family: 'Courier New', Courier, monospace;
-            font-size: 14px;
+            font-size: 11px;
             color: #000;
-            background: #eee;
             margin: 0;
-            padding: 20px;
+            padding: 0;
         }
-
-        .ticket-container {
-            width: 74mm; /* Ancho optimizado para papel de 80mm */
-            max-width: 80mm;
-            margin: 0 auto; /* Centrado en pantalla */
-            background: #fff;
-            padding: 12px;
-            box-shadow: 0 0 8px rgba(0,0,0,0.15);
+        .ticket {
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            padding: 5px;
+            box-sizing: border-box;
         }
-
-        .text-center {
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .bold { font-weight: bold; }
+        .logo-container {
             text-align: center;
+            margin-bottom: 5px;
         }
-
-        .text-right {
-            text-align: right;
+        .logo-container img {
+            max-width: 120px;
+            height: auto;
         }
-
-        .bold {
-            font-weight: bold;
-        }
-
         .line {
             border-top: 1px dashed #000;
-            margin: 10px 0;
+            margin: 6px 0;
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 10px;
         }
-
         th, td {
-            padding: 4px 0;
+            padding: 3px 1px;
             text-align: left;
+            vertical-align: top;
         }
-
         th {
             border-bottom: 1px solid #000;
-            font-size: 13px;
+            border-top: 1px solid #000;
         }
-
-        .totales {
-            margin-top: 12px;
+        .totales-table td {
+            padding: 2px 0;
         }
-
-        .acciones {
+        .qr-container {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 8px;
         }
-
-        .btn-imprimir {
-            background-color: #000;
-            color: #fff;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 4px;
+        .qr-container img {
+            width: 100px;
+            height: 100px;
         }
-
-        .btn-imprimir:hover {
-            background-color: #333;
-        }
-
-        /* CONFIGURACIÓN EXCLUSIVA PARA LA IMPRESIÓN TÉRMICA (Jaltech 80mm) */
         @media print {
-            @page {
-                size: 80mm auto; /* Fuerza el ancho del rollo de 80mm */
-                margin: 0;       /* Elimina márgenes del navegador */
-            }
-
-            body {
-                background: #fff;
+            body { 
+                background: none; 
+                padding: 0; 
                 margin: 0;
-                padding: 0;
             }
-
-            .ticket-container {
-                width: 100%;
-                margin: 0 auto;
-                padding: 0 2mm;
-                box-shadow: none;
-            }
-
-            /* Ocultar elementos que no van en el tiquete */
-            .no-print {
-                display: none !important;
+            .ticket { 
+                width: 100%; 
+                max-width: none; 
+                padding: 0; 
+                box-shadow: none; 
             }
         }
     </style>
 </head>
 <body>
 
-    <div class="ticket-container">
-        <!-- Encabezado del Negocio: Atelier VC -->
-        <div class="text-center">
-            <h1 style="margin: 0 0 5px 0; font-size: 22px; letter-spacing: 1px;">ATELIER VC</h1>
-            <p style="margin: 2px 0; font-size: 12px;">NIT: 1152215510</p>
-            <p style="margin: 2px 0; font-size: 12px;">Cra 34 #96-19 Manrique San Pablo</p>
-            <p style="margin: 2px 0; font-size: 12px;">WhatsApp: 321 642 4294 / 304 625 4969</p>
-            <p style="margin: 2px 0; font-size: 12px;">Instagram: @atelier_vc24</p>
-        </div>
-
+<div class="ticket">
+    <!-- Logotipo y Encabezado del Negocio -->
+    <div class="logo-container">
+        <img src="/static/img/transparente.png" alt="Logo Atelier VC">
+    </div>
+    <div class="text-center">
+        <div class="bold" style="font-size: 12px;">Atelier VC</div>
+        <div>NIT: 1152215510</div>
+        <div>Cra 34 # 96-19 Manrique San Pablo</div>
+        <div>WhatsApp: 321 642 4294 / 304 625 4969</div>
         <div class="line"></div>
-
-        <!-- Información de la Venta -->
-        <div style="font-size: 13px;">
-            <p style="margin: 3px 0;"><strong>Factura N°:</strong> #{{ venta.id }}</p>
-            <p style="margin: 3px 0;"><strong>Fecha:</strong> {{ venta.fecha_venta.strftime('%d/%m/%Y %H:%M') }}</p>
-            <p style="margin: 3px 0;"><strong>Cliente:</strong> {{ venta.cliente.nombre if venta.cliente else 'Cliente General' }}</p>
-            <p style="margin: 3px 0;"><strong>Método de Pago:</strong> {{ venta.metodo_pago }}</p>
-        </div>
-
-        <div class="line"></div>
-
-        <!-- Tabla de Productos -->
-        <table>
-            <thead>
-                <tr>
-                    <th>Cant / Prod</th>
-                    <th class="text-right">Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for detalle in venta.detalles %}
-                <tr>
-                    <td colspan="2" style="padding-top: 6px; font-weight: bold; font-size: 14px;">{{ detalle.producto.nombre }}</td>
-                </tr>
-                <tr>
-                    <td style="font-size: 13px;">{{ detalle.cantidad }} x ${{ "{:,.0f}".format(detalle.precio_unitario) }}</td>
-                    <td class="text-right" style="font-size: 13px;">${{ "{:,.0f}".format(detalle.subtotal) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <div class="line"></div>
-
-        <!-- Totales -->
-        <div class="totales text-center">
-            <span style="font-size: 13px; font-weight: bold;">TOTAL A PAGAR</span>
-            <div style="font-size: 20px; font-weight: bold; margin-top: 4px;">
-                ${{ "{:,.0f}".format(venta.total) }} COP
-            </div>
-        </div>
-
-        <div class="line"></div>
-
-        <!-- Pie de página del tiquete -->
-        <div class="text-center" style="font-size: 12px; margin-top: 12px;">
-            <p style="margin: 3px 0;">¡Gracias por tu compra!</p>
-            <p style="margin: 3px 0;">Conserva este tiquete para cambios o garantías.</p>
-        </div>
+        <div class="bold" style="font-size: 12px; margin: 3px 0;">FACTURA ELECTRÓNICA DE VENTA</div>
+        <div>No. FE-{{ venta.id }}</div>
     </div>
 
-    <!-- Botones de acción (Se ocultan automáticamente al imprimir) -->
-    <div class="acciones no-print">
-        <button class="btn-imprimir" onclick="window.print()">🖨️ Imprimir Tiquete</button>
-        <br><br>
-        <a href="/ventas" style="color: #000; text-decoration: none; font-size: 14px;">← Volver a Ventas</a>
+    <div class="line"></div>
+
+    <!-- Datos de Fecha, Cliente y Vendedor -->
+    <div>
+        <div><span class="bold">Fecha:</span> {{ venta.fecha_venta.strftime('%Y-%m-%d') }}</div>
+        <div><span class="bold">Hora:</span> {{ venta.fecha_venta.strftime('%H:%M:%S') }}</div>
+        <div><span class="bold">Cliente:</span> {{ venta.cliente.nombre if venta.cliente else 'Cliente Mostrador' }}</div>
+        <div><span class="bold">Documento:</span> {{ venta.cliente.documento if venta.cliente and venta.cliente.documento else 'N/A' }}</div>
+        <div><span class="bold">Ciudad:</span> {{ venta.cliente.ciudad if venta.cliente and venta.cliente.ciudad else 'N/A' }}</div>
+        <div><span class="bold">Vendedor:</span> Victor Caro</div>
+        <div><span class="bold">Pago:</span> {{ venta.metodo_pago }}</div>
     </div>
+
+    <div class="line"></div>
+
+    <!-- Detalle de Productos -->
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 12%;">Cant</th>
+                <th style="width: 58%;">Detalle</th>
+                <th style="width: 30%; text-align: right;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for det in venta.detalles %}
+            <tr>
+                <td>{{ det.cantidad }}</td>
+                <td>
+                    {{ det.producto.nombre }}
+                    {% if det.producto.marca %}<br><span style="font-size: 9px; color: #333;">{{ det.producto.marca }}</span>{% endif %}
+                </td>
+                <td class="text-right">${{ "{:,.0f}".format(det.subtotal) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="line"></div>
+
+    <!-- Totales -->
+    <table class="totales-table">
+        <tr>
+            <td class="bold" style="font-size: 12px;">TOTAL:</td>
+            <td class="text-right bold" style="font-size: 13px;">${{ "{:,.0f}".format(venta.total) }}</td>
+        </tr>
+    </table>
+    
+    <div style="font-size: 9px; margin-top: 3px;">Artículos totales: {{ venta.detalles | sum(attribute='cantidad') }}</div>
+
+    <div class="line"></div>
+
+    <!-- Mensaje y Código QR de WhatsApp -->
+    <div class="text-center" style="font-size: 10px; margin-bottom: 4px;">
+        ¡Escríbenos por WhatsApp para cualquier consulta o pedido!
+    </div>
+
+    <div class="qr-container">
+        <img src="/static/img/qr.png" alt="QR WhatsApp Atelier VC">
+    </div>
+
+    <div class="text-center" style="font-size: 9px; margin-top: 6px;">
+        ¡Gracias por tu compra en Atelier VC!
+    </div>
+</div>
+
+<!-- Script para invocar automáticamente la impresora POS -->
+<script>
+    window.onload = function() {
+        window.print();
+    }
+</script>
 
 </body>
 </html>
