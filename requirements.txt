@@ -9,3 +9,4 @@ pydantic
 itsdangerous
 bcrypt
 python-multipart
+psycopg2-binary
