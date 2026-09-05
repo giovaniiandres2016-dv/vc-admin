@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>Factura Electrónica de Venta - Atelier VC</title>
-    <style>
+<style>
         /* Estilos estrictamente optimizados para POS térmica de 80mm */
         body {
             background-color: #fff;
             font-family: 'Courier New', Courier, monospace;
-            font-size: 11px;
+            font-size: 12px; /* Subimos un poquito la letra base para que resalte más */
             color: #000;
             margin: 0;
             padding: 0;
         }
         .ticket {
             width: 100%;
-            max-width: 300px;
-            margin: 0 auto;
-            padding: 5px;
+            max-width: 100%; /* Forzamos a que use todo el ancho real del rollo */
+            margin: 0;
+            padding: 0 2px;
             box-sizing: border-box;
         }
         .text-center { text-align: center; }
@@ -28,7 +28,7 @@
             margin-bottom: 5px;
         }
         .logo-container img {
-            max-width: 120px;
+            max-width: 140px; /* Un poco más visible el logo */
             height: auto;
         }
         .line {
@@ -38,7 +38,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10px;
+            font-size: 11px; /* Letra de tabla más legible */
         }
         th, td {
             padding: 3px 1px;
@@ -57,9 +57,16 @@
             margin-top: 8px;
         }
         .qr-container img {
-            width: 100px;
-            height: 100px;
+            width: 110px;
+            height: 110px;
         }
+
+        /* Configuración estricta para la impresora térmica */
+        @page {
+            size: 80mm auto;
+            margin: 0mm; /* Cero márgenes para que la impresora use todo el ancho */
+        }
+
         @media print {
             body { 
                 background: none; 
@@ -68,8 +75,9 @@
             }
             .ticket { 
                 width: 100%; 
-                max-width: none; 
+                max-width: 100%; 
                 padding: 0; 
+                margin: 0; 
                 box-shadow: none; 
             }
         }
