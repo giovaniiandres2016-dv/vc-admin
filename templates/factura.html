@@ -2,191 +2,145 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Factura Electrónica de Venta - Atelier VC</title>
-<style>
-    /* Estilos compactos de alta visibilidad para una sola hoja en POS de 80mm */
-    body {
-        background-color: #fff;
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 14px;
-        font-weight: bold;
-        color: #000;
-        margin: 0;
-        padding: 0;
-    }
-    .ticket {
-        width: 100%;
-        max-width: 100%;
-        margin: 0 auto;
-        padding: 0 2px;
-        box-sizing: border-box;
-    }
-    .text-center { text-align: center; }
-    .text-right { text-align: right; }
-    .bold { font-weight: bold; }
-    
-    .logo-container {
-        text-align: center;
-        margin-bottom: 6px;
-    }
-    .logo-container img {
-        max-width: 150px; /* Logo grande pero controlado para no gastar espacio vertical */
-        height: auto;
-    }
-    
-    .line {
-        border-top: 2px dashed #000;
-        margin: 6px 0;
-    }
-    
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-    }
-    th, td {
-        padding: 3px 1px;
-        text-align: left;
-        vertical-align: top;
-    }
-    th {
-        border-bottom: 2px solid #000;
-        border-top: 2px solid #000;
-        font-size: 14px;
-    }
-    
-    .totales-table td {
-        padding: 3px 0;
-        font-size: 16px;
-        font-weight: bold;
-    }
-    
-    .qr-container {
-        text-align: center;
-        margin-top: 6px;
-    }
-    .qr-container img {
-        width: 110px;
-        height: 110px;
-    }
-
-    /* Configuración estricta para evitar la doble hoja en impresoras térmicas */
-    @page {
-        size: 80mm auto; /* 'auto' permite que el rollo crezca lo justo y necesario sin cortar */
-        margin: 0mm;
-    }
-
-    @media print {
-        body { 
-            background: none; 
-            padding: 0; 
+    <title>Factura Atelier VC</title>
+    <style>
+        /* Configuración crucial para papel térmico de 80mm y evitar reescalados del navegador */
+        @page {
+            size: 80mm auto;
             margin: 0;
-            zoom: 1.25; /* Zoom optimizado: grande y ancho, pero sin excederse para evitar la segunda hoja */
         }
-        .ticket { 
-            width: 100%; 
-            max-width: 100%; 
-            padding: 0; 
-            margin: 0; 
-            box-shadow: none; 
+        
+        body {
+            font-family: 'Courier New', Courier, monospace; /* Letra monoespaciada para alinear perfecto en POS */
+            font-size: 12px; /* Tamaño legible y adaptado a térmicas */
+            line-height: 1.2;
+            color: #000000;
+            width: 72mm; /* Ancho seguro dentro de los 80mm de la Jaltech */
+            max-width: 72mm;
+            margin: 0 auto;
+            padding: 5px 0;
+            background-color: #ffffff;
         }
-        /* Prohibimos cualquier salto de página automático dentro del ticket */
-        *, *:before, *:after {
-            page-break-inside: avoid;
-            break-inside: avoid;
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .bold { font-weight: bold; }
+        
+        .logo {
+            max-width: 50px; /* Tamaño controlado para que no sature el ticket */
+            height: auto;
+            margin-bottom: 5px;
         }
-    }
-</style>
+
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 5px;
+        }
+
+        .info-section, .items-section, .totals-section {
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        th, td {
+            padding: 3px 0;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        /* Ajuste de columnas para la tabla de productos */
+        .col-cant { width: 12%; text-align: center; }
+        .col-desc { width: 58%; }
+        .col-total { width: 30%; text-align: right; }
+
+        .totals-table td {
+            padding: 2px 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 10px;
+        }
+
+        .qr-code {
+            display: block;
+            margin: 8px auto;
+            max-width: 100px;
+            height: auto;
+        }
+    </style>
 </head>
 <body>
 
-<div class="ticket">
-    <!-- Logotipo y Encabezado del Negocio -->
-    <div class="logo-container">
-        <img src="/static/img/transparente.png" alt="Logo Atelier VC">
-    </div>
-    <div class="text-center">
-        <div class="bold" style="font-size: 12px;">Atelier VC</div>
-        <div>NIT: 1152215510</div>
-        <div>Cra 34 # 96-19 Manrique San Pablo</div>
-        <div>WhatsApp: 321 642 4294 / 304 625 4969</div>
-        <div class="line"></div>
-        <div class="bold" style="font-size: 12px; margin: 3px 0;">FACTURA ELECTRÓNICA DE VENTA</div>
-        <div>No. FE-{{ venta.id }}</div>
+    <div class="header">
+        <!-- Logo o Nombre -->
+        <div class="bold" style="font-size: 16px;">ATELIER VC</div>
+        <div>NIT: 000.000.000-0</div>
+        <div>Rionegro / Medellín, Antioquia</div>
+        <div style="margin-top: 5px;" class="bold">FACTURA ELECTRÓNICA DE VENTA</div>
+        <div>No. TICKET: #000123</div>
     </div>
 
-    <div class="line"></div>
-
-    <!-- Datos de Fecha, Cliente y Vendedor -->
-    <div>
-        <div><span class="bold">Fecha:</span> {{ venta.fecha_venta.strftime('%Y-%m-%d') }}</div>
-        <div><span class="bold">Hora:</span> {{ venta.fecha_venta.strftime('%H:%M:%S') }}</div>
-        <div><span class="bold">Cliente:</span> {{ venta.cliente.nombre if venta.cliente else 'Cliente Mostrador' }}</div>
-        <div><span class="bold">Documento:</span> {{ venta.cliente.documento if venta.cliente and venta.cliente.documento else 'N/A' }}</div>
-        <div><span class="bold">Ciudad:</span> {{ venta.cliente.ciudad if venta.cliente and venta.cliente.ciudad else 'N/A' }}</div>
-        <div><span class="bold">Vendedor:</span> Victor Caro</div>
-        <div><span class="bold">Pago:</span> {{ venta.metodo_pago }}</div>
+    <div class="info-section">
+        <div><span class="bold">Fecha:</span> 2026-09-05 12:14</div>
+        <div><span class="bold">Cliente:</span> Mostrador General</div>
+        <div><span class="bold">C.C./NIT:</span> 222222222</div>
+        <div><span class="bold">Pago:</span> Efectivo</div>
     </div>
 
-    <div class="line"></div>
+    <div class="items-section">
+        <table>
+            <thead>
+                <tr style="border-bottom: 1px solid #000;">
+                    <th class="col-cant">CANT</th>
+                    <th class="col-desc">DESCRIPCIÓN</th>
+                    <th class="col-total">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-cant">1</td>
+                    <td class="col-desc">Camisa Importada Slim Fit L</td>
+                    <td class="col-total">$180,000</td>
+                </tr>
+                <!-- Más productos aquí -->
+            </tbody>
+        </table>
+    </div>
 
-    <!-- Detalle de Productos -->
-    <table>
-        <thead>
+    <div class="totals-section">
+        <table class="totals-table">
             <tr>
-                <th style="width: 12%;">Cant</th>
-                <th style="width: 58%;">Detalle</th>
-                <th style="width: 30%; text-align: right;">Total</th>
+                <td>SUBTOTAL:</td>
+                <td class="text-right">$151,260</td>
             </tr>
-        </thead>
-        <tbody>
-            {% for det in venta.detalles %}
             <tr>
-                <td>{{ det.cantidad }}</td>
-                <td>
-                    {{ det.producto.nombre }}
-                    {% if det.producto.marca %}<br><span style="font-size: 9px; color: #333;">{{ det.producto.marca }}</span>{% endif %}
-                </td>
-                <td class="text-right">${{ "{:,.0f}".format(det.subtotal) }}</td>
+                <td>IVA (19%):</td>
+                <td class="text-right">$28,740</td>
             </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <div class="line"></div>
-
-    <!-- Totales -->
-    <table class="totales-table">
-        <tr>
-            <td class="bold" style="font-size: 12px;">TOTAL:</td>
-            <td class="text-right bold" style="font-size: 13px;">${{ "{:,.0f}".format(venta.total) }}</td>
-        </tr>
-    </table>
-    
-    <div style="font-size: 9px; margin-top: 3px;">Artículos totales: {{ venta.detalles | sum(attribute='cantidad') }}</div>
-
-    <div class="line"></div>
-
-    <!-- Mensaje y Código QR de WhatsApp -->
-    <div class="text-center" style="font-size: 10px; margin-bottom: 4px;">
-        ¡Escríbenos por WhatsApp para cualquier consulta o pedido!
+            <tr class="bold" style="font-size: 13px;">
+                <td>TOTAL A PAGAR:</td>
+                <td class="text-right">$180,000</td>
+            </tr>
+        </table>
     </div>
 
-    <div class="qr-container">
-        <img src="/static/img/qr.png" alt="QR WhatsApp Atelier VC">
+    <div class="footer">
+        <div>¡Gracias por tu compra en ÉPIKA / Atelier VC!</div>
+        <div style="margin-top: 4px;">Conserva este tiquete para cambios</div>
+        <!-- Si generas código QR -->
+        <!-- <img src="qr_placeholder.png" class="qr-code" alt="QR DIAN"> -->
     </div>
-
-    <div class="text-center" style="font-size: 9px; margin-top: 6px;">
-        ¡Gracias por tu compra en Atelier VC!
-    </div>
-</div>
-
-<!-- Script para invocar automáticamente la impresora POS -->
-<script>
-    window.onload = function() {
-        window.print();
-    }
-</script>
 
 </body>
 </html>
