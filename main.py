@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, extract, func
+from starlette.middleware.base import BaseHTTPMiddleware
 import bcrypt
 
 from config.database import SessionLocal, engine, Base
@@ -25,6 +26,17 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="VC-Admin")
 app.add_middleware(SessionMiddleware, secret_key="vc_admin_secret_key_clean")
+
+# --- MIDDLEWARE ANTI-CACHÉ (Evita navegación hacia atrás post-logout) ---
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+app.add_middleware(NoCacheMiddleware)
 
 # Montaje correcto de archivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -906,10 +918,10 @@ async def ver_factura(venta_id: int, request: Request, db: Session = Depends(get
     )
 
 @app.post("/ventas/{id}/rechazar-anulacion")
-async def rechazar_anulacion(id: int, db: Session = Depends(get_db)):
-    admin_user = require_admin(request) if 'request' in locals() else None # O ajusta según tu control de sesión
+async def rechazar_anulacion(id: int, request: Request, db: Session = Depends(get_db)):
+    admin_user = require_admin(request)
     venta = db.query(Venta).filter(Venta.id == id).first()
     if venta and venta.estado == "SOLICITADA_ANULACION":
-        venta.estado = "COMPLETADA" # O el estado original que prefieras para devolverla a activa
+        venta.estado = "COMPLETADA"
         db.commit()
     return RedirectResponse(url="/ventas/anulaciones", status_code=status.HTTP_303_SEE_OTHER)
