@@ -58,7 +58,7 @@ def get_db():
 def init_users():
     db = SessionLocal()
     
-    # Crear Admin si no existe
+    # Crear Admin si no existeN
     if not db.query(Usuario).filter(Usuario.nombre == "admin").first():
         hashed_admin = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         admin = Usuario(nombre="admin", email="admin@vcadmin.com", password_hash=hashed_admin, rol="ADMIN", activo=True)
