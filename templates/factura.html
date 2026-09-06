@@ -4,143 +4,192 @@
     <meta charset="UTF-8">
     <title>Factura Atelier VC</title>
     <style>
-        /* Configuración crucial para papel térmico de 80mm y evitar reescalados del navegador */
         @page {
             size: 80mm auto;
-            margin: 0;
-        }
-        
-        body {
-            font-family: 'Courier New', Courier, monospace; /* Letra monoespaciada para alinear perfecto en POS */
-            font-size: 12px; /* Tamaño legible y adaptado a térmicas */
-            line-height: 1.2;
-            color: #000000;
-            width: 72mm; /* Ancho seguro dentro de los 80mm de la Jaltech */
-            max-width: 72mm;
-            margin: 0 auto;
-            padding: 5px 0;
-            background-color: #ffffff;
+            margin: 0mm;
         }
 
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .bold { font-weight: bold; }
-        
-        .logo {
-            max-width: 50px; /* Tamaño controlado para que no sature el ticket */
-            height: auto;
-            margin-bottom: 5px;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.2;
+            color: #000000;
+            background-color: #ffffff;
+            width: 72mm;
+            margin: 0 auto;
+            padding: 4mm 2mm;
+            text-align: left;
+        }
+
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
 
         .header {
             text-align: center;
-            margin-bottom: 10px;
-            border-bottom: 1px dashed #000;
-            padding-bottom: 5px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px dashed #000;
         }
 
-        .info-section, .items-section, .totals-section {
-            margin-bottom: 10px;
-            border-bottom: 1px dashed #000;
-            padding-bottom: 5px;
+        .logo-container {
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            margin-bottom: 4px;
+        }
+
+        .store-info {
+            font-size: 12px;
+        }
+
+        .invoice-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .meta-section {
+            font-size: 12px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 2px dashed #000;
+        }
+
+        .meta-row {
+            margin-bottom: 2px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 11px;
+            margin-bottom: 8px;
         }
 
-        th, td {
-            padding: 3px 0;
+        th {
+            font-size: 12px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 3px;
             text-align: left;
+        }
+
+        td {
+            padding: 3px 0;
+            font-size: 12px;
             vertical-align: top;
         }
 
-        /* Ajuste de columnas para la tabla de productos */
-        .col-cant { width: 12%; text-align: center; }
-        .col-desc { width: 58%; }
-        .col-total { width: 30%; text-align: right; }
+        .col-cant { width: 15%; }
+        .col-desc { width: 50%; }
+        .col-total { width: 35%; text-align: right; }
 
-        .totals-table td {
-            padding: 2px 0;
+        .totals-section {
+            border-top: 2px dashed #000;
+            padding-top: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .total-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+
+        .qr-section {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .qr-section img {
+            width: 90px;
+            height: 90px;
         }
 
         .footer {
             text-align: center;
-            margin-top: 10px;
-            font-size: 10px;
-        }
-
-        .qr-code {
-            display: block;
-            margin: 8px auto;
-            max-width: 100px;
-            height: auto;
+            font-size: 12px;
+            margin-top: 8px;
+            border-top: 1px dotted #000;
+            padding-top: 6px;
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <!-- Logo o Nombre -->
-        <div class="bold" style="font-size: 16px;">ATELIER VC</div>
-        <div>NIT: 000.000.000-0</div>
-        <div>Rionegro / Medellín, Antioquia</div>
-        <div style="margin-top: 5px;" class="bold">FACTURA ELECTRÓNICA DE VENTA</div>
-        <div>No. TICKET: #000123</div>
+        <img src="/static/img/logo.png" alt="Atelier VC Logo" style="max-width: 140px; height: auto; margin-bottom: 4px;">
+        <div class="store-info bold">NIT: 1152215510</div>
+        <div class="store-info">Cra 34 # 96-19 Manrique San Pablo</div>
+        <div class="store-info">WhatsApp: 321 642 4294</div>
+        <div class="invoice-title">FACTURA No. FE-{{ venta.id }}</div>
     </div>
 
-    <div class="info-section">
-        <div><span class="bold">Fecha:</span> 2026-09-05 12:14</div>
-        <div><span class="bold">Cliente:</span> Mostrador General</div>
-        <div><span class="bold">C.C./NIT:</span> 222222222</div>
-        <div><span class="bold">Pago:</span> Efectivo</div>
+    <div class="meta-section">
+        <div class="meta-row"><span class="bold">Fecha:</span> {{ (venta.fecha or venta.created_at or venta.fecha_venta or 'N/A') | string | truncate(19, True, '') }}</div>
+        <div class="meta-row"><span class="bold">Cliente:</span> {{ venta.cliente.nombre if venta.cliente and venta.cliente.nombre else (venta.cliente or 'Mostrador General') }}</div>
+        <div class="meta-row"><span class="bold">Vendedor:</span> Victor Caro</div>
+        <div class="meta-row"><span class="bold">Pago:</span> {{ venta.pago or venta.metodo_pago or venta.forma_pago or 'Efectivo' }}</div>
     </div>
 
-    <div class="items-section">
-        <table>
-            <thead>
-                <tr style="border-bottom: 1px solid #000;">
-                    <th class="col-cant">CANT</th>
-                    <th class="col-desc">DESCRIPCIÓN</th>
-                    <th class="col-total">TOTAL</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="col-cant">1</td>
-                    <td class="col-desc">Camisa Importada Slim Fit L</td>
-                    <td class="col-total">$180,000</td>
-                </tr>
-                <!-- Más productos aquí -->
-            </tbody>
-        </table>
-    </div>
+    <table>
+        <thead>
+            <tr>
+                <th class="col-cant">Cant</th>
+                <th class="col-desc">Detalle</th>
+                <th class="col-total">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in venta.detalles %}
+            <tr>
+                <td class="col-cant bold">{{ item.cantidad }}</td>
+                <td class="col-desc">{{ item.producto_nombre or (item.producto.nombre if item.producto else (item.nombre or 'Producto')) }}</td>
+                <td class="col-total">${{ "{:,.0f}".format(item.subtotal if item.subtotal is defined and item.subtotal is not none else (item.cantidad * (item.valor_unitario if item.valor_unitario is defined and item.valor_unitario is not none else 0))) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
     <div class="totals-section">
-        <table class="totals-table">
-            <tr>
-                <td>SUBTOTAL:</td>
-                <td class="text-right">$151,260</td>
-            </tr>
-            <tr>
-                <td>IVA (19%):</td>
-                <td class="text-right">$28,740</td>
-            </tr>
-            <tr class="bold" style="font-size: 13px;">
-                <td>TOTAL A PAGAR:</td>
-                <td class="text-right">$180,000</td>
-            </tr>
-        </table>
+        <div class="summary-line">
+            <span>Total Artículos:</span>
+            <span>{{ venta.detalles|sum(attribute='cantidad') }}</span>
+        </div>
+        <div class="total-line">
+            <span>TOTAL:</span>
+            <span>${{ "{:,.0f}".format(venta.total) }}</span>
+        </div>
+    </div>
+
+    <div class="qr-section">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://wa.me/573216424294" alt="QR Factura">
+        <div style="font-size: 10px; margin-top: 3px;">¡Escaneanos o contáctanos!</div>
     </div>
 
     <div class="footer">
-        <div>¡Gracias por tu compra en ÉPIKA / Atelier VC!</div>
-        <div style="margin-top: 4px;">Conserva este tiquete para cambios</div>
-        <!-- Si generas código QR -->
-        <!-- <img src="qr_placeholder.png" class="qr-code" alt="QR DIAN"> -->
+        <div>¡Gracias por tu compra!</div>
+        <div class="bold">Atelier VC - Calidad y Estilo</div>
     </div>
 
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
 </body>
 </html>
