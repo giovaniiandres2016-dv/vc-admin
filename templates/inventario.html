@@ -60,6 +60,9 @@
     </div>
     
     <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <button type="button" onclick="abrirModalEtiquetas()" style="background: #283245; color: #FFF; border: none; padding: 0 16px; height: 38px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+            🏷️ Exportar Etiquetas
+        </button>
         <button type="button" onclick="abrirModalImportar()" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #FFF; border: none; padding: 0 18px; height: 38px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; text-align: center; gap: 6px;">
             📁 Importar Excel
         </button>
@@ -141,6 +144,7 @@
     </table>
 </div>
 
+<!-- MODAL PARA IMPORTAR EXCEL -->
 <div class="modal" id="modalImportar">
     <div style="text-align: left; max-width: 450px; width: 100%; background: #11151C; border: 1px solid #1E2638; padding: 24px; border-radius: 8px;">
         <h3 style="color: #FFF; margin-bottom: 10px;">Importar Inventario desde Excel</h3>
@@ -158,6 +162,30 @@
         </form>
     </div>
 </div>
+
+<!-- MODAL PARA SELECCIONAR FECHAS DE ETIQUETAS -->
+<div class="modal" id="modalExportarEtiquetas">
+    <div style="text-align: left; max-width: 420px; width: 100%; background: #11151C; border: 1px solid #1E2638; padding: 24px; border-radius: 8px;">
+        <h3 style="color: #FFF; margin-bottom: 10px;">Seleccionar Rango de Fechas</h3>
+        <p style="color: #94A3B8; font-size: 0.8rem; margin-bottom: 16px;">
+            Elige el periodo de creación de los productos para exportar exclusivamente sus etiquetas y evitar duplicados.
+        </p>
+        <form action="/inventario/exportar-etiquetas" method="GET">
+            <div style="margin-bottom: 14px;">
+                <label style="display: block; color: #94A3B8; font-size: 0.75rem; margin-bottom: 6px; font-weight: 600;">FECHA INICIO</label>
+                <input type="date" name="fecha_inicio" required style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; color: #94A3B8; font-size: 0.75rem; margin-bottom: 6px; font-weight: 600;">FECHA FIN</label>
+                <input type="date" name="fecha_fin" required style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="cerrarModalEtiquetas()" style="flex: 1; background: #283245; color: #FFF; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancelar</button>
+                <button type="submit" class="btn-gold" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; text-align: center; font-weight: 600;">Descargar Excel</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -166,6 +194,9 @@
 <script>
     function abrirModalImportar() { document.getElementById('modalImportar').classList.add('active'); }
     function cerrarModalImportar() { document.getElementById('modalImportar').classList.remove('active'); }
+
+    function abrirModalEtiquetas() { document.getElementById('modalExportarEtiquetas').classList.add('active'); }
+    function cerrarModalEtiquetas() { document.getElementById('modalExportarEtiquetas').classList.remove('active'); }
 
     $(document).ready(function() {
         $('#tablaInventario').DataTable({

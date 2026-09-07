@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Factura Atelier VC</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='img/logo.png') }}">
     <style>
         @page {
             size: 80mm auto;
@@ -89,6 +90,12 @@
         .col-desc { width: 50%; }
         .col-total { width: 35%; text-align: right; }
 
+        .item-modalidad {
+            font-size: 10px;
+            color: #444;
+            font-style: italic;
+        }
+
         .totals-section {
             border-top: 2px dashed #000;
             padding-top: 6px;
@@ -158,7 +165,12 @@
             {% for item in venta.detalles %}
             <tr>
                 <td class="col-cant bold">{{ item.cantidad }}</td>
-                <td class="col-desc">{{ item.producto_nombre or (item.producto.nombre if item.producto else (item.nombre or 'Producto')) }}</td>
+                <td class="col-desc">
+                    {{ item.producto_nombre or (item.producto.nombre if item.producto else (item.nombre or 'Producto')) }}
+                    {% if item.tipo_precio %}
+                    <div class="item-modalidad">Mod: {{ item.tipo_precio }}</div>
+                    {% endif %}
+                </td>
                 <td class="col-total">${{ "{:,.0f}".format(item.subtotal if item.subtotal is defined and item.subtotal is not none else (item.cantidad * (item.valor_unitario if item.valor_unitario is defined and item.valor_unitario is not none else 0))) }}</td>
             </tr>
             {% endfor %}

@@ -32,7 +32,7 @@
     <!-- RESUMEN DE COMPRAS -->
     <div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: center; text-align: center;">
         <span style="color: #94A3B8; font-size: 0.75rem; text-transform: uppercase;">Total Histórico Comprado</span>
-        <h1 style="color: #D4AF37; font-size: 2.2rem; margin: 8px 0;">${{ "%.2f"|format(total_historico or 0) }}</h1>
+        <h1 style="color: #D4AF37; font-size: 2.2rem; margin: 8px 0;">{{ (total_historico or 0)|cop }}</h1>
         <p style="color: #64748B; font-size: 0.8rem;">{{ historial_ventas|length }} transacción(es) realizada(s)</p>
     </div>
 </div>
@@ -64,7 +64,7 @@
                             <span style="color: #F87171;">{{ v.estado }}</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #FFF;">${{ "%.2f"|format(v.total) }}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #FFF;">{{ v.total|cop }}</td>
                 </tr>
                 {% else %}
                 <tr>

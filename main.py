@@ -2,9 +2,10 @@ import os
 from datetime import datetime
 from typing import List, Optional
 import io
+import unicodedata
 import pandas as pd
 from fastapi import FastAPI, Request, Form, Depends, status, HTTPException, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -41,7 +42,7 @@ app.add_middleware(NoCacheMiddleware)
 # Montaje correcto de archivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-
+templates.env.filters["cop"] = lambda val: f"${int(round(float(val))):,}".replace(",", ".") if val is not None else "$0"
 
 # --- DEPENDENCIA DE BASE DE DATOS ---
 
@@ -53,18 +54,31 @@ def get_db():
         db.close()
 
 
+# --- FUNCIÓN DE AUTOGENERACIÓN DE CÓDIGOS ---
+def generar_codigo_automatico(categoria: str, nombre: str, referencia: str) -> str:
+    cat_limpia = "".join([c for c in unicodedata.normalize('NFKD', str(categoria)) if not unicodedata.combining(c)]).upper()
+    cat_code = cat_limpia[:3] if len(cat_limpia) >= 3 else "GEN"
+    
+    palabras_nombre = [w for w in str(nombre).split() if len(w) > 2]
+    nom_code = "".join([w[0].upper() for w in palabras_nombre[:2]]) if palabras_nombre else "PRD"
+    if len(nom_code) < 2:
+        nom_code = str(nombre)[:3].upper()
+        
+    ref_code = "".join([c for c in str(referencia) if c.isalnum()]).upper() if referencia and str(referencia).strip() != "" else "01"
+    
+    return f"{cat_code}-{nom_code}-{ref_code}"
+
+
 # --- INICIALIZACIÓN DE USUARIOS ---
 
 def init_users():
     db = SessionLocal()
     
-    # Crear Admin si no existeN
     if not db.query(Usuario).filter(Usuario.nombre == "admin").first():
         hashed_admin = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         admin = Usuario(nombre="admin", email="admin@vcadmin.com", password_hash=hashed_admin, rol="ADMIN", activo=True)
         db.add(admin)
     
-    # Crear Colaborador si no existe
     if not db.query(Usuario).filter(Usuario.nombre == "colaborador").first():
         hashed_colab = bcrypt.hashpw("colab123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         colab = Usuario(nombre="colaborador", email="colab@vcadmin.com", password_hash=hashed_colab, rol="COLABORADOR", activo=True)
@@ -124,15 +138,17 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
     total_ventas_count = len(ventas_completadas)
     ingresos_totales = sum(v.total for v in ventas_completadas)
     
-    costo_total = 0.0
+    costo_total_vendido = 0.0
     for venta in ventas_completadas:
         for detalle in venta.detalles:
             prod = db.query(Producto).filter(Producto.id == detalle.producto_id).first()
             if prod:
-                costo_total += (prod.precio_costo * detalle.cantidad)
+                costo_total_vendido += (prod.precio_costo * detalle.cantidad)
                 
-    ganancia_neta = ingresos_totales - costo_total
-    margen_porcentaje = (ganancia_neta / ingresos_totales * 100) if ingresos_totales > 0 else 0.0
+    ganancia_neta = ingresos_totales - costo_total_vendido
+
+    todos_los_productos = db.query(Producto).all()
+    inversion_total_inventario = sum((p.precio_costo * p.stock) for p in todos_los_productos)
 
     stock_bajo_count = db.query(Producto).filter(Producto.stock < 2).count()
 
@@ -192,7 +208,7 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
             "total_ventas_count": total_ventas_count,
             "ingresos_totales": ingresos_totales,
             "ganancia_neta": ganancia_neta,
-            "margen_porcentaje": margen_porcentaje,
+            "inversion_mes": inversion_total_inventario,
             "stock_bajo": stock_bajo_count,
             "mes_actual": mes_actual,
             "ultimas_ventas": ventas_completadas[:5],
@@ -473,6 +489,8 @@ async def guardar_venta(
     metodo_pago: str = Form(...),
     producto_ids: List[int] = Form(...),
     cantidades: List[int] = Form(...),
+    precios_unitarios: List[float] = Form(...),
+    tipos_precio: List[str] = Form(...),
     db: Session = Depends(get_db)
 ):
     user = get_current_user(request)
@@ -485,7 +503,7 @@ async def guardar_venta(
     total_venta = 0.0
     detalles = []
 
-    for p_id, cant in zip(producto_ids, cantidades):
+    for p_id, cant, precio_mod, t_precio in zip(producto_ids, cantidades, precios_unitarios, tipos_precio):
         if cant <= 0:
             continue
         prod = db.query(Producto).filter(Producto.id == p_id).first()
@@ -495,7 +513,7 @@ async def guardar_venta(
                 detail=f"Stock insuficiente para el producto {prod.nombre if prod else 'desconocido'}."
             )
         
-        subtotal = prod.precio * cant
+        subtotal = precio_mod * cant
         total_venta += subtotal
         prod.stock -= cant
         
@@ -503,7 +521,8 @@ async def guardar_venta(
             DetalleVenta(
                 producto_id=prod.id, 
                 cantidad=cant, 
-                precio_unitario=prod.precio, 
+                precio_unitario=precio_mod,
+                tipo_precio=t_precio,
                 subtotal=subtotal
             )
         )
@@ -673,6 +692,30 @@ async def vista_nuevo_producto(request: Request):
         context={"user": user, "producto": None, "active_page": "inventario", "error": None}
     )
 
+# --- API BUSCAR PRODUCTO POR CÓDIGO (AUTOCOMPLETADO MANUAL) ---
+@app.get("/api/inventario/por-codigo/{codigo}")
+async def buscar_producto_por_codigo(codigo: str, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    
+    prod = db.query(Producto).filter(Producto.codigo == codigo.strip()).first()
+    if not prod:
+        return {"encontrado": False}
+    
+    return {
+        "encontrado": True,
+        "nombre": prod.nombre,
+        "categoria": prod.categoria,
+        "marca": prod.marca,
+        "referencia": prod.referencia,
+        "color": prod.color,
+        "talla": prod.talla,
+        "precio": prod.precio,
+        "precio_costo": prod.precio_costo,
+        "stock": prod.stock
+    }
+
 @app.post("/inventario/guardar")
 async def guardar_producto(
     request: Request,
@@ -698,33 +741,55 @@ async def guardar_producto(
             detail="Acceso denegado: No tienes permisos para crear o modificar productos en el inventario."
         )
 
-    if codigo and codigo.strip():
-        prod_existente = db.query(Producto).filter(Producto.codigo == codigo.strip()).first()
-        if prod_existente:
-            return templates.TemplateResponse(
-                request=request,
-                name="producto_nuevo.html",
-                context={
-                    "user": user, 
-                    "producto": None, 
-                    "active_page": "inventario",
-                    "error": "Ya existe un producto registrado con este mismo código."
-                }
-            )
+    codigo_limpio = codigo.strip() if codigo and codigo.strip() and codigo.strip().upper() != "S/C" else None
+    producto_existente = None
 
-    nuevo_prod = Producto(
-        nombre=nombre.strip(),
-        categoria=categoria,
-        marca=marca.strip(),
-        referencia=referencia.strip(),
-        color=color.strip(),
-        talla=talla.strip(),
-        codigo=codigo.strip() if codigo and codigo.strip() else None,
-        precio=precio,
-        precio_costo=precio_costo,
-        stock=stock
-    )
-    db.add(nuevo_prod)
+    # 1. Intentar buscar por código explícito si se proporcionó
+    if codigo_limpio:
+        producto_existente = db.query(Producto).filter(Producto.codigo == codigo_limpio).first()
+
+    # 2. Si no se encontró por código, buscar por combinación única de atributos del producto
+    if not producto_existente:
+        producto_existente = db.query(Producto).filter(
+            func.lower(Producto.nombre) == nombre.strip().lower(),
+            func.lower(Producto.marca) == marca.strip().lower(),
+            func.lower(Producto.referencia) == referencia.strip().lower(),
+            func.lower(Producto.color) == color.strip().lower(),
+            func.lower(Producto.talla) == talla.strip().lower()
+        ).first()
+
+    if producto_existente:
+        # Si ya existe, acumulamos estrictamente al stock y actualizamos precios/datos sin crear otro código
+        producto_existente.stock += stock
+        producto_existente.precio = precio
+        producto_existente.precio_costo = precio_costo
+        producto_existente.categoria = categoria
+    else:
+        # Si es totalmente nuevo, definimos o autogeneramos su código único
+        if codigo_limpio:
+            codigo_final = codigo_limpio
+        else:
+            codigo_final = generar_codigo_automatico(categoria, nombre, referencia)
+            base_gen = codigo_final
+            contador = 1
+            while db.query(Producto).filter(Producto.codigo == codigo_final).first() is not None:
+                codigo_final = f"{base_gen}-{contador}"
+                contador += 1
+
+        nuevo_prod = Producto(
+            nombre=nombre.strip(),
+            categoria=categoria,
+            marca=marca.strip(),
+            referencia=referencia.strip(),
+            color=color.strip(),
+            talla=talla.strip(),
+            codigo=codigo_final,
+            precio=precio,
+            precio_costo=precio_costo,
+            stock=stock
+        )
+        db.add(nuevo_prod)
+
     db.commit()
 
     return RedirectResponse(url="/inventario", status_code=status.HTTP_303_SEE_OTHER)
@@ -752,15 +817,23 @@ async def importar_inventario(
         contenido = await archivo_excel.read()
         df = pd.read_excel(io.BytesIO(contenido))
         
-        df.columns = [str(col).strip().lower() for col in df.columns]
+        def normalizar_columna(col):
+            if not isinstance(col, str):
+                return str(col)
+            nfkd = unicodedata.normalize('NFKD', col)
+            sin_tilde = "".join([c for c in nfkd if not unicodedata.combining(c)])
+            return sin_tilde.strip().lower()
+
+        df.columns = [normalizar_columna(col) for col in df.columns]
         
         required_cols = ['nombre', 'precio', 'stock']
         for col in required_cols:
             if col not in df.columns:
                 raise HTTPException(status_code=400, detail=f"Falta la columna obligatoria en el Excel: {col}")
         
+        codigos_en_lote = set()
+
         for _, row in df.iterrows():
-            codigo = str(row.get('codigo', 'S/C')) if pd.notna(row.get('codigo')) else 'S/C'
             nombre = str(row['nombre'])
             precio = float(row['precio'])
             stock = int(row['stock'])
@@ -772,7 +845,20 @@ async def importar_inventario(
             talla = str(row.get('talla', '')) if pd.notna(row.get('talla')) else ''
             precio_costo = float(row.get('precio_costo', 0.0)) if pd.notna(row.get('precio_costo')) else 0.0
 
-            producto_existente = db.query(Producto).filter(Producto.codigo == codigo).first() if codigo != 'S/C' else None
+            raw_codigo = row.get('codigo')
+            if pd.notna(raw_codigo) and str(raw_codigo).strip() != "" and str(raw_codigo).strip().upper() != "S/C":
+                codigo = str(raw_codigo).strip()
+            else:
+                codigo = generar_codigo_automatico(categoria, nombre, referencia)
+                base_codigo = codigo
+                contador = 1
+                while codigo in codigos_en_lote or db.query(Producto).filter(Producto.codigo == codigo).first() is not None:
+                    codigo = f"{base_codigo}-{contador}"
+                    contador += 1
+
+            codigos_en_lote.add(codigo)
+
+            producto_existente = db.query(Producto).filter(Producto.codigo == codigo).first()
             
             if producto_existente:
                 producto_existente.nombre = nombre
@@ -780,7 +866,7 @@ async def importar_inventario(
                 producto_existente.stock += stock
             else:
                 nuevo_prod = Producto(
-                    codigo=codigo if codigo != 'S/C' else None,
+                    codigo=codigo,
                     nombre=nombre,
                     categoria=categoria,
                     marca=marca,
@@ -806,6 +892,72 @@ async def importar_inventario(
         raise HTTPException(status_code=500, detail=f"Error al procesar el archivo Excel: {str(e)}")
         
     return RedirectResponse(url="/inventario", status_code=status.HTTP_303_SEE_OTHER)
+
+@app.get("/inventario/exportar-etiquetas")
+async def exportar_etiquetas_excel(
+    request: Request, 
+    fecha_inicio: Optional[str] = None, 
+    fecha_fin: Optional[str] = None, 
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    query = db.query(Producto)
+    
+    if fecha_inicio and fecha_fin:
+        try:
+            dt_inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+            dt_fin = datetime.strptime(fecha_fin, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(Producto.creado_en >= dt_inicio, Producto.creado_en <= dt_fin)
+        except ValueError:
+            pass
+
+    productos = query.all()
+    
+    # Corrección automática: si hay productos con código vacío o S/C, les genera un código al vuelo para la exportación y los guarda
+    cambios_realizados = False
+    codigos_existentes = {p.codigo for p in productos if p.codigo and p.codigo != "S/C"}
+
+    data = []
+    for p in productos:
+        codigo_actual = p.codigo
+        if not codigo_actual or codigo_actual.strip() == "" or codigo_actual.strip().upper() == "S/C":
+            nuevo_gen = generar_codigo_automatico(p.categoria or "General", p.nombre, p.referencia or "")
+            base_gen = nuevo_gen
+            contador = 1
+            while nuevo_gen in codigos_existentes:
+                nuevo_gen = f"{base_gen}-{contador}"
+                contador += 1
+            
+            p.codigo = nuevo_gen
+            codigos_existentes.add(nuevo_gen)
+            cambios_realizados = True
+
+        data.append({
+            "Código de Producto": p.codigo,
+            "Nombre del Producto": p.nombre,
+            "Referencia": p.referencia or "N/A",
+            "Cantidad": p.stock
+        })
+
+    if cambios_realizados:
+        db.commit()
+    
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Etiquetas')
+    output.seek(0)
+    
+    filename = f"etiquetas_{fecha_inicio}_al_{fecha_fin}.xlsx" if fecha_inicio and fecha_fin else "etiquetas_productos.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @app.get("/inventario/{producto_id}/editar", response_class=HTMLResponse)
 async def vista_editar_producto(producto_id: int, request: Request, db: Session = Depends(get_db)):

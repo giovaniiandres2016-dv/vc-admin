@@ -3,6 +3,42 @@
 {% block title %}ATELIER VC - {% if producto %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
 
 {% block content %}
+<!-- Tom Select CSS -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<style>
+    /* Estilo personalizado para adaptar Tom Select al tema oscuro de tu app */
+    .ts-wrapper .ts-control {
+        background-color: #171D28 !important;
+        border: 1px solid #283245 !important;
+        color: #fff !important;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 0.88rem;
+        box-shadow: none !important;
+    }
+    .ts-wrapper.focus .ts-control {
+        border-color: #D4AF37 !important;
+    }
+    .ts-wrapper .ts-dropdown {
+        background-color: #171D28 !important;
+        border: 1px solid #283245 !important;
+        color: #fff !important;
+        border-radius: 6px;
+        margin-top: 4px;
+    }
+    .ts-dropdown .option {
+        color: #fff !important;
+        padding: 8px 12px;
+    }
+    .ts-dropdown .active {
+        background-color: #283245 !important;
+        color: #D4AF37 !important;
+    }
+    .ts-dropdown .create {
+        color: #D4AF37 !important;
+    }
+</style>
+
 <a href="/inventario" style="color: #94A3B8; text-decoration: none; font-size: 0.8rem;">← Volver al Inventario</a>
 <h2 style="color: #FFFFFF; font-weight: 600; margin-top: 8px; margin-bottom: 20px;">
     {% if producto %}Editar Producto: {{ producto.nombre }}{% else %}Registrar Nuevo Producto{% endif %}
@@ -19,12 +55,19 @@
     <form action="{% if producto %}/inventario/{{ producto.id }}/actualizar{% else %}/inventario/guardar{% endif %}" method="POST">
         <div class="venta-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
             
-            <!-- CATEGORÍA -->
+            <!-- CÓDIGO / SKU (Puesto al inicio para permitir autocompletado si se introduce) -->
+            <div class="form-group" style="grid-column: span 2;">
+                <label style="color: #D4AF37;">CÓDIGO / SKU (Ingresa uno existente para autocompletar o déjalo vacío)</label>
+                <input type="text" id="inputCodigo" name="codigo" value="{{ producto.codigo if producto else '' }}" {% if producto %}disabled{% endif %} placeholder="Ej. ACC-BC-WALLETL">
+            </div>
+
+            <!-- CATEGORÍA CON BUSCADOR -->
             <div class="form-group" style="grid-column: span 2;">
                 <label>CATEGORÍA *</label>
-                <select name="categoria" required style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 10px 14px; border-radius: 6px; font-size: 0.88rem; outline: none;">
+                <select name="categoria" id="select-categoria" required>
                     <option value="" disabled {% if not producto or not producto.categoria %}selected{% endif %}>Seleccione una categoría...</option>
-                    {% set cats = ["calzado", "camisetas", "sacos", "conjunto camiseta", "conjunto saco", "jeans caballero", "jeans dama", "blusas", "otros"] %}
+                    {% set cats = ["calzado", "camisetas", "sacos2", "conjunto camiseta", "conjunto saco", "jeans caballero", "jeans dama", "blusas", "otros","Sudadera","Reloj","Lociones","Bolsos","Mini bolso","Cangurera",
+                    "Tenis originales","Bodys", "Gorra", "Pantaloneta ", "Fragancia"] %}
                     {% for cat in cats %}
                     <option value="{{ cat }}" {% if producto and producto.categoria == cat %}selected{% endif %}>{{ cat | title }}</option>
                     {% endfor %}
@@ -62,25 +105,19 @@
                        style="background: #171D28; border: 1px solid #D4AF37; color: #D4AF37; font-weight: 600;" placeholder="Se generará solo...">
             </div>
 
-            <!-- CÓDIGO / SKU -->
-            <div class="form-group">
-                <label>CÓDIGO / SKU</label>
-                <input type="text" name="codigo" value="{{ producto.codigo if producto else '' }}" {% if producto %}disabled{% endif %} placeholder="Ej. EPI-502-NE">
-            </div>
-
-            <!-- PRECIO DE COSTO (Habilitado si es nuevo, bloqueado en edición para no admins según corresponda) -->
+            <!-- PRECIO DE COSTO -->
             <div class="form-group">
                 <label style="color: #60A5FA;">PRECIO DE COSTO ($ COP) *</label>
-                <input type="number" step="1" name="precio_costo" required 
+                <input type="number" step="1" id="inputPrecioCosto" name="precio_costo" required 
                        value="{{ producto.precio_costo | int if producto and producto.precio_costo is not none else '' }}" 
                        {% if producto and user.rol != 'ADMIN' %}disabled{% endif %} 
                        placeholder="Ej. 60000" style="border-color: #3b82f6;">
             </div>
 
-            <!-- PRECIO DE VENTA (Habilitado para registrar nuevo producto completo, bloqueado solo al editar) -->
+            <!-- PRECIO DE VENTA -->
             <div class="form-group">
                 <label>PRECIO DE VENTA ($ COP) *</label>
-                <input type="number" step="1" name="precio" required 
+                <input type="number" step="1" id="inputPrecio" name="precio" required 
                        value="{{ producto.precio | int if producto and producto.precio is not none else '' }}" 
                        {% if producto %}disabled{% endif %} 
                        placeholder="Ej. 120000">
@@ -88,7 +125,7 @@
 
             <div class="form-group" style="grid-column: span 2;">
                 <label>STOCK / CANTIDAD INICIAL *</label>
-                <input type="number" name="stock" required value="{{ producto.stock if producto else 0 }}" placeholder="Ej. 10">
+                <input type="number" id="inputStock" name="stock" required value="{{ producto.stock if producto else 0 }}" placeholder="Ej. 10">
             </div>
 
         </div>
@@ -100,14 +137,32 @@
     </form>
 </div>
 
+<!-- Tom Select JS -->
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        // Inicializar Buscador en Categoría
+        const tomSelectCategoria = new TomSelect("#select-categoria", {
+            create: false,
+            sortField: {
+                field: "text",
+                direction: "asc"
+            },
+            placeholder: "Escribe para buscar categoría..."
+        });
+
+        // Elementos del formulario
+        const inputCodigo = document.getElementById("inputCodigo");
         const marca = document.getElementById("inputMarca");
         const referencia = document.getElementById("inputReferencia");
         const color = document.getElementById("inputColor");
         const talla = document.getElementById("inputTalla");
         const nombreFinal = document.getElementById("inputNombreFinal");
+        const precio = document.getElementById("inputPrecio");
+        const precioCosto = document.getElementById("inputPrecioCosto");
+        const stock = document.getElementById("inputStock");
 
+        // Autocompletado dinámico al escribir el Nombre del Producto
         function actualizarNombre() {
             let m = marca.value.trim();
             let r = referencia.value.trim();
@@ -123,6 +178,35 @@
                 input.addEventListener("input", actualizarNombre);
             }
         });
+
+        // Búsqueda por código para autocompletar el formulario al salir del campo (blur)
+        if (inputCodigo) {
+            inputCodigo.addEventListener("blur", async function() {
+                const codigo = this.value.trim();
+                if (!codigo) return;
+
+                try {
+                    const response = await fetch(`/api/inventario/por-codigo/${encodeURIComponent(codigo)}`);
+                    const data = await response.json();
+
+                    if (data.encontrado) {
+                        // Rellenar campos automáticamente con la data encontrada
+                        if (data.categoria) tomSelectCategoria.setValue(data.categoria);
+                        marca.value = data.marca || '';
+                        referencia.value = data.referencia || '';
+                        color.value = data.color || '';
+                        talla.value = data.talla || '';
+                        actualizarNombre();
+                        
+                        if (precio) precio.value = data.precio || '';
+                        if (precioCosto) precioCosto.value = data.precio_costo || '';
+                        if (stock) stock.value = data.stock || '';
+                    }
+                } catch (error) {
+                    console.error("Error al buscar el producto por código:", error);
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

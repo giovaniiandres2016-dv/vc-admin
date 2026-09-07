@@ -47,7 +47,7 @@ class Producto(Base):
     color = Column(String(50), nullable=True)
     talla = Column(String(20), nullable=True)
     codigo = Column(String(50), unique=True, nullable=True)
-    precio = Column(Float, nullable=False)  # Precio de venta
+    precio = Column(Float, nullable=False)  # Precio de venta base
     precio_costo = Column(Float, default=0.0)  # Precio en que nos sale
     stock = Column(Integer, default=0)
     creado_en = Column(DateTime, default=hora_colombia)
@@ -84,7 +84,8 @@ class DetalleVenta(Base):
     venta_id = Column(Integer, ForeignKey("ventas.id"), nullable=False)
     producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False)
     cantidad = Column(Integer, nullable=False)
-    precio_unitario = Column(Float, nullable=False)
+    precio_unitario = Column(Float, nullable=False)  # Guarda el precio editado en caja
+    tipo_precio = Column(String(30), default="Regular")  # NUEVO: Guarda 'Regular', 'Descuento', etc.
     subtotal = Column(Float, nullable=False)
 
     venta = relationship("Venta", back_populates="detalles")

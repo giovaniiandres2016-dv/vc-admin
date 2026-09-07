@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}ATELIER VC- Registrar Venta{% endblock %}
+{% block title %}ATELIER VC - Registrar Venta{% endblock %}
 
 {% block extra_head %}
 <!-- Select2 CSS -->
@@ -10,22 +10,19 @@
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
     .modal.active { display: flex; }
 
-    /* Estructura general de la vista de ventas */
     .venta-grid {
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: 20px;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 1000px) {
         .venta-grid {
             grid-template-columns: 1fr;
         }
     }
 
-    /* Estilos limpios y compactos para Select2 */
-    .select2-container {
-        width: 100% !important;
-    }
+    /* Estilos Select2 */
+    .select2-container { width: 100% !important; }
     .select2-container--default .select2-selection--single {
         background-color: #171D28 !important;
         border: 1px solid #283245 !important;
@@ -78,7 +75,7 @@
 <form action="/ventas/guardar" method="POST" id="ventaForm">
     <div class="venta-grid">
         
-        <!-- Lado Izquierdo: Selección de Cliente y Productos -->
+        <!-- Lado Izquierdo: Cliente y Productos -->
         <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
             
             <!-- Selección Cliente -->
@@ -115,20 +112,21 @@
                 </div>
             </div>
 
-            <!-- Tabla de Items de la Venta Responsiva -->
+            <!-- Tabla de Items de la Venta -->
             <div class="table-responsive" style="margin-top: 20px;">
-                <table style="width: 100%; border-collapse: collapse; min-width: 450px;" id="tablaItems">
+                <table style="width: 100%; border-collapse: collapse; min-width: 600px;" id="tablaItems">
                     <thead>
                         <tr style="color: #94A3B8; font-size: 0.7rem; text-transform: uppercase; border-bottom: 1px solid #1E2638; text-align: left;">
                             <th style="padding: 10px 8px;">PRODUCTO</th>
-                            <th style="padding: 10px 8px;">PRECIO</th>
+                            <th style="padding: 10px 8px;">PRECIO UNIT. ($)</th>
+                            <th style="padding: 10px 8px;">TIPO / MOTIVO</th>
                             <th style="padding: 10px 8px;">CANT.</th>
                             <th style="padding: 10px 8px;">SUBTOTAL</th>
                             <th style="padding: 10px 8px; text-align: right;">ACCIÓN</th>
                         </tr>
                     </thead>
                     <tbody id="itemsBody">
-                        <!-- Filas agregadas dinámicamente -->
+                        <!-- Filas dinámicas -->
                     </tbody>
                 </table>
             </div>
@@ -215,7 +213,7 @@
 
         const id = option.value;
         const nombre = option.dataset.nombre;
-        const precio = parseFloat(option.dataset.precio);
+        const precioBase = parseFloat(option.dataset.precio);
 
         if (document.getElementById(`row-${id}`)) return;
 
@@ -223,13 +221,47 @@
         row.id = `row-${id}`;
         row.style.borderBottom = "1px solid #1E2638";
         row.innerHTML = `
-            <td style="padding: 10px 8px; color: #FFF;">${nombre}<input type="hidden" name="producto_ids" value="${id}"></td>
-            <td style="padding: 10px 8px; color: #94A3B8;">${formatCOP(precio)}</td>
-            <td style="padding: 10px 8px;"><input type="number" name="cantidades" value="1" min="1" max="${option.dataset.stock}" onchange="calcularTotal()" style="width: 55px; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 6px; border-radius: 4px; text-align: center;"></td>
-            <td style="padding: 10px 8px; color: #D4AF37; font-weight: 600;" class="subtotal-cell">${formatCOP(precio)}</td>
-            <td style="padding: 10px 8px; text-align: right;"><button type="button" onclick="eliminarRow('${id}')" style="background: none; border: none; color: #F87171; cursor: pointer; font-size: 1rem;">✕</button></td>
+            <td style="padding: 10px 8px; color: #FFF;">
+                ${nombre}
+                <input type="hidden" name="producto_ids" value="${id}">
+            </td>
+            <td style="padding: 10px 8px;">
+                <input type="number" name="precios_unitarios" value="${precioBase}" step="any" data-precio-base="${precioBase}" oninput="verificarCambioPrecio('${id}')" style="width: 100px; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 6px; border-radius: 4px; text-align: right;">
+            </td>
+            <td style="padding: 10px 8px;">
+                <select name="tipos_precio" id="tipo-${id}" style="background: #171D28; border: 1px solid #283245; color: #FFF; padding: 6px; border-radius: 4px; font-size: 0.75rem; width: 120px;">
+                    <option value="REGULAR">Regular</option>
+                    <option value="DESCUENTO">Descuento</option>
+                    <option value="PROMOCION">Promoción</option>
+                    <option value="MAYORISTA">Mayorista</option>
+                </select>
+            </td>
+            <td style="padding: 10px 8px;">
+                <input type="number" name="cantidades" value="1" min="1" max="${option.dataset.stock}" oninput="calcularTotal()" style="width: 55px; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 6px; border-radius: 4px; text-align: center;">
+            </td>
+            <td style="padding: 10px 8px; color: #D4AF37; font-weight: 600;" class="subtotal-cell">${formatCOP(precioBase)}</td>
+            <td style="padding: 10px 8px; text-align: right;">
+                <button type="button" onclick="eliminarRow('${id}')" style="background: none; border: none; color: #F87171; cursor: pointer; font-size: 1rem;">✕</button>
+            </td>
         `;
         document.getElementById('itemsBody').appendChild(row);
+        calcularTotal();
+    }
+
+    function verificarCambioPrecio(id) {
+        const row = document.getElementById(`row-${id}`);
+        const inputPrecio = row.querySelector('input[name="precios_unitarios"]');
+        const selectTipo = row.querySelector('select[name="tipos_precio"]');
+        const precioBase = parseFloat(inputPrecio.dataset.precioBase);
+        const precioActual = parseFloat(inputPrecio.value) || 0;
+
+        // Auto-sugerencia inteligente: Si modifican el precio por debajo del base, sugerir descuento o promoción automáticamente
+        if (precioActual < precioBase && selectTipo.value === 'REGULAR') {
+            selectTipo.value = 'DESCUENTO';
+        } else if (precioActual === precioBase) {
+            selectTipo.value = 'REGULAR';
+        }
+
         calcularTotal();
     }
 
@@ -242,10 +274,13 @@
         let acumulado = 0;
         const rows = document.querySelectorAll('#itemsBody tr');
         rows.forEach(r => {
-            const precioTexto = r.children[1].innerText.replace('$', '').replace(/\./g, '');
-            const precio = parseFloat(precioTexto) || 0;
-            const cant = parseInt(r.children[2].querySelector('input').value) || 0;
+            const inputPrecio = r.querySelector('input[name="precios_unitarios"]');
+            const inputCant = r.querySelector('input[name="cantidades"]');
+            
+            const precio = parseFloat(inputPrecio.value) || 0;
+            const cant = parseInt(inputCant.value) || 0;
             const sub = precio * cant;
+            
             r.querySelector('.subtotal-cell').innerText = formatCOP(sub);
             acumulado += sub;
         });
