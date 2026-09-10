@@ -66,11 +66,42 @@
                 <label>CATEGORÍA *</label>
                 <select name="categoria" id="select-categoria" required>
                     <option value="" disabled {% if not producto or not producto.categoria %}selected{% endif %}>Seleccione una categoría...</option>
-                    {% set cats = ["calzado", "camisetas", "sacos2", "conjunto camiseta", "conjunto saco", "jeans caballero", "jeans dama", "blusas", "otros","Sudadera","Reloj","Lociones","Bolsos","Mini bolso","Cangurera",
-                    "Tenis originales","Bodys", "Gorra", "Pantaloneta ", "Fragancia"] %}
-                    {% for cat in cats %}
-                    <option value="{{ cat }}" {% if producto and producto.categoria == cat %}selected{% endif %}>{{ cat | title }}</option>
-                    {% endfor %}
+{% set cats = [
+    "Sudadera premium",
+    "Sudadera multimarca",
+    "Pantaloneta premium",
+    "Pantaloneta beisbolera",
+    "Reloj 1.1",
+    "Loción premium",
+    "Jean premium",
+    "Jean americano",
+    "Buzo turco",
+    "Buzo promoción",
+    "Tenis originales",
+    "Tenis premium",
+    "Camiseta promoción",
+    "Camiseta gama alta",
+    "Camiseta premium",
+    "Gorra original",
+    "Gorra 1.1",
+    "Camiseta multimarca",
+    "Camiseta turca",
+    "Camisa tipo polo turca",
+    "Bodys económico",
+    "Buzo corto americano",
+    "Vestido",
+    "Bodys americano",
+    "Conjunto dama",
+    "Conjunto hombre",
+    "Conjunto premium",
+    "Blusa económica",
+    "Blusa premium",
+    "Buzo económico",
+    "Otros"
+] %}
+{% for cat in cats %}
+<option value="{{ cat }}" {% if producto and producto.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+{% endfor %}
                 </select>
             </div>
 

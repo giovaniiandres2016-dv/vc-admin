@@ -54,6 +54,42 @@ def get_db():
         db.close()
 
 
+# --- LISTA OFICIAL DE CATEGORÍAS ÉPIKA ---
+CATEGORIAS_OFICIALES = [
+    "Sudadera premium",
+    "Sudadera multimarca",
+    "Pantaloneta premium",
+    "Pantaloneta beisbolera",
+    "Reloj 1.1",
+    "Loción premium",
+    "Jean premium",
+    "Jean americano",
+    "Buzo turco",
+    "Buzo promoción",
+    "Tenis originales",
+    "Tenis premium",
+    "Camiseta promoción",
+    "Camiseta gama alta",
+    "Camiseta premium",
+    "Gorra original",
+    "Gorra 1.1",
+    "Camiseta multimarca",
+    "Camiseta turca",
+    "Camisa tipo polo turca",
+    "Bodys económico",
+    "Buzo corto americano",
+    "Vestido",
+    "Bodys americano",
+    "Conjunto dama",
+    "Conjunto hombre",
+    "Conjunto premium",
+    "Blusa económica",
+    "Blusa premium",
+    "Buzo económico",
+    "Otros"
+]
+
+
 # --- FUNCIÓN DE AUTOGENERACIÓN DE CÓDIGOS ---
 def generar_codigo_automatico(categoria: str, nombre: str, referencia: str) -> str:
     cat_limpia = "".join([c for c in unicodedata.normalize('NFKD', str(categoria)) if not unicodedata.combining(c)]).upper()
@@ -479,7 +515,13 @@ async def nueva_venta_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         request=request,
         name="venta_nueva.html",
-        context={"user": user, "clientes": clientes, "productos": productos, "active_page": "ventas"}
+        context={
+            "user": user, 
+            "clientes": clientes, 
+            "productos": productos, 
+            "categorias_oficiales": CATEGORIAS_OFICIALES,
+            "active_page": "ventas"
+        }
     )
 
 @app.post("/ventas/guardar")
@@ -689,7 +731,13 @@ async def vista_nuevo_producto(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="producto_nuevo.html",
-        context={"user": user, "producto": None, "active_page": "inventario", "error": None}
+        context={
+            "user": user, 
+            "producto": None, 
+            "categorias_oficiales": CATEGORIAS_OFICIALES,
+            "active_page": "inventario", 
+            "error": None
+        }
     )
 
 # --- API BUSCAR PRODUCTO POR CÓDIGO (AUTOCOMPLETADO MANUAL) ---
@@ -744,11 +792,9 @@ async def guardar_producto(
     codigo_limpio = codigo.strip() if codigo and codigo.strip() and codigo.strip().upper() != "S/C" else None
     producto_existente = None
 
-    # 1. Intentar buscar por código explícito si se proporcionó
     if codigo_limpio:
         producto_existente = db.query(Producto).filter(Producto.codigo == codigo_limpio).first()
 
-    # 2. Si no se encontró por código, buscar por combinación única de atributos del producto
     if not producto_existente:
         producto_existente = db.query(Producto).filter(
             func.lower(Producto.nombre) == nombre.strip().lower(),
@@ -759,13 +805,11 @@ async def guardar_producto(
         ).first()
 
     if producto_existente:
-        # Si ya existe, acumulamos estrictamente al stock y actualizamos precios/datos sin crear otro código
         producto_existente.stock += stock
         producto_existente.precio = precio
         producto_existente.precio_costo = precio_costo
         producto_existente.categoria = categoria
     else:
-        # Si es totalmente nuevo, definimos o autogeneramos su código único
         if codigo_limpio:
             codigo_final = codigo_limpio
         else:
@@ -916,7 +960,6 @@ async def exportar_etiquetas_excel(
 
     productos = query.all()
     
-    # Corrección automática: si hay productos con código vacío o S/C, les genera un código al vuelo para la exportación y los guarda
     cambios_realizados = False
     codigos_existentes = {p.codigo for p in productos if p.codigo and p.codigo != "S/C"}
 
@@ -935,11 +978,18 @@ async def exportar_etiquetas_excel(
             codigos_existentes.add(nuevo_gen)
             cambios_realizados = True
 
+        cantidad = p.stock if p.stock is not None else 0
+        precio_costo = p.precio_costo if p.precio_costo is not None else 0.0
+        inversion_total = cantidad * precio_costo
+
         data.append({
             "Código de Producto": p.codigo,
             "Nombre del Producto": p.nombre,
+            "Categoría": p.categoria or "General",
             "Referencia": p.referencia or "N/A",
-            "Cantidad": p.stock
+            "Cantidad": cantidad,
+            "Precio de Compra Unitario": precio_costo,
+            "Inversión Total": inversion_total
         })
 
     if cambios_realizados:
@@ -948,10 +998,10 @@ async def exportar_etiquetas_excel(
     df = pd.DataFrame(data)
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Etiquetas')
+        df.to_excel(writer, index=False, sheet_name='Reporte Inversión')
     output.seek(0)
     
-    filename = f"etiquetas_{fecha_inicio}_al_{fecha_fin}.xlsx" if fecha_inicio and fecha_fin else "etiquetas_productos.xlsx"
+    filename = f"reporte_inversion_{fecha_inicio}_al_{fecha_fin}.xlsx" if fecha_inicio and fecha_fin else "reporte_inversion_inventario.xlsx"
     
     return StreamingResponse(
         output,
@@ -972,7 +1022,13 @@ async def vista_editar_producto(producto_id: int, request: Request, db: Session 
     return templates.TemplateResponse(
         request=request,
         name="producto_nuevo.html",
-        context={"user": user, "producto": producto, "active_page": "inventario", "error": None}
+        context={
+            "user": user, 
+            "producto": producto, 
+            "categorias_oficiales": CATEGORIAS_OFICIALES,
+            "active_page": "inventario", 
+            "error": None
+        }
     )
 
 @app.post("/inventario/{producto_id}/actualizar")
@@ -1004,6 +1060,7 @@ async def actualizar_producto(
             context={
                 "user": user, 
                 "producto": producto, 
+                "categorias_oficiales": CATEGORIAS_OFICIALES,
                 "active_page": "inventario",
                 "error": "Acceso denegado: No cuentas con permisos para modificar registros del inventario."
             }
