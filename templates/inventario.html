@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}ATELIER VC - Inventario{% endblock %}
+{% block title %}ÉPIKA - Inventario{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -95,7 +95,17 @@
             <tr style="border-bottom: 1px solid #161D28; vertical-align: middle;">
                 <td style="padding: 12px 14px; color: #94A3B8; font-family: monospace; white-space: nowrap;">{{ p.codigo or 'S/C' }}</td>
                 <td style="padding: 12px 14px;">
+                    <!-- Nombre principal del producto -->
                     <span style="font-weight: 600; color: #FFFFFF; display: block;">{{ p.nombre }}</span>
+                    
+                    <!-- Subtítulo concatenado y ordenado: Marca | Talla | Color -->
+                    <div style="font-size: 0.75rem; color: #94A3B8; margin-top: 3px;">
+                        <span style="color: #D4AF37; font-weight: 600;">{{ p.marca or 'Sin Marca' }}</span>
+                        <span style="margin: 0 5px; color: #4A5568;">•</span>
+                        <span>Talla: <strong style="color: #CBD5E1;">{{ p.talla or 'N/A' }}</strong></span>
+                        <span style="margin: 0 5px; color: #4A5568;">•</span>
+                        <span>Color: <strong style="color: #CBD5E1;">{{ p.color or 'N/A' }}</strong></span>
+                    </div>
                 </td>
                 <td style="padding: 12px 14px; color: #D4AF37; font-weight: 600; white-space: nowrap;">${{ "{:,.0f}".format(p.precio).replace(',', '.') }}</td>
                 <td style="padding: 12px 14px; text-align: center; white-space: nowrap;">

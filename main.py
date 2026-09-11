@@ -25,8 +25,8 @@ os.makedirs("templates", exist_ok=True)
 # Crear tablas en la base de datos
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="VC-Admin")
-app.add_middleware(SessionMiddleware, secret_key="vc_admin_secret_key_clean")
+app = FastAPI(title="ÉPIKA")
+app.add_middleware(SessionMiddleware, secret_key="epika_admin_secret_key_clean")
 
 # --- MIDDLEWARE ANTI-CACHÉ (Evita navegación hacia atrás post-logout) ---
 class NoCacheMiddleware(BaseHTTPMiddleware):
@@ -112,12 +112,12 @@ def init_users():
     
     if not db.query(Usuario).filter(Usuario.nombre == "admin").first():
         hashed_admin = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        admin = Usuario(nombre="admin", email="admin@vcadmin.com", password_hash=hashed_admin, rol="ADMIN", activo=True)
+        admin = Usuario(nombre="admin", email="admin@epika.com", password_hash=hashed_admin, rol="ADMIN", activo=True)
         db.add(admin)
     
     if not db.query(Usuario).filter(Usuario.nombre == "colaborador").first():
         hashed_colab = bcrypt.hashpw("colab123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        colab = Usuario(nombre="colaborador", email="colab@vcadmin.com", password_hash=hashed_colab, rol="COLABORADOR", activo=True)
+        colab = Usuario(nombre="colaborador", email="colab@epika.com", password_hash=hashed_colab, rol="COLABORADOR", activo=True)
         db.add(colab)
 
     db.commit()
@@ -184,7 +184,19 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
     ganancia_neta = ingresos_totales - costo_total_vendido
 
     todos_los_productos = db.query(Producto).all()
-    inversion_total_inventario = sum((p.precio_costo * p.stock) for p in todos_los_productos)
+    
+    # NUEVA LÓGICA: Inversión total considerando stock actual + unidades ya vendidas (no baja al vender)
+    inversion_total_inventario = 0.0
+    for p in todos_los_productos:
+        stock_actual = p.stock if p.stock is not None else 0
+        unidades_vendidas = db.query(func.sum(DetalleVenta.cantidad)).filter(
+            DetalleVenta.producto_id == p.id,
+            DetalleVenta.venta_id.in_(
+                db.query(Venta.id).filter(Venta.estado == "COMPLETADA")
+            )
+        ).scalar() or 0
+        costo_unitario = p.precio_costo if p.precio_costo is not None else 0.0
+        inversion_total_inventario += (costo_unitario * (stock_actual + unidades_vendidas))
 
     stock_bajo_count = db.query(Producto).filter(Producto.stock < 2).count()
 
@@ -859,7 +871,16 @@ async def importar_inventario(
     
     try:
         contenido = await archivo_excel.read()
-        df = pd.read_excel(io.BytesIO(contenido))
+        
+        excel_dict = pd.read_excel(io.BytesIO(contenido), sheet_name=None)
+        df = None
+        for sheet_name, sheet_df in excel_dict.items():
+            if not sheet_df.empty and len(sheet_df.columns) > 0:
+                df = sheet_df
+                break
+                
+        if df is None or df.empty:
+            raise HTTPException(status_code=400, detail="El archivo Excel no contiene hojas con datos válidos.")
         
         def normalizar_columna(col):
             if not isinstance(col, str):
@@ -882,7 +903,8 @@ async def importar_inventario(
             precio = float(row['precio'])
             stock = int(row['stock'])
             
-            categoria = str(row.get('categoria', 'General')) if pd.notna(row.get('categoria')) else 'General'
+            # Conservar la categoría correcta del Excel (si viene vacía o nula, asigna 'Otros')
+            categoria = str(row.get('categoria', 'Otros')) if pd.notna(row.get('categoria')) and str(row.get('categoria')).strip() != "" else 'Otros'
             marca = str(row.get('marca', '')) if pd.notna(row.get('marca')) else ''
             referencia = str(row.get('referencia', '')) if pd.notna(row.get('referencia')) else ''
             color = str(row.get('color', '')) if pd.notna(row.get('color')) else ''
@@ -907,6 +929,7 @@ async def importar_inventario(
             if producto_existente:
                 producto_existente.nombre = nombre
                 producto_existente.precio = precio
+                producto_existente.categoria = categoria  # Actualiza/conserva categoría del Excel
                 producto_existente.stock += stock
             else:
                 nuevo_prod = Producto(
@@ -1041,6 +1064,7 @@ async def actualizar_producto(
     referencia: str = Form(...),
     color: str = Form(...),
     talla: str = Form(...),
+    precio: float = Form(...),
     precio_costo: float = Form(0.0),
     stock: int = Form(...),
     db: Session = Depends(get_db)
@@ -1072,6 +1096,7 @@ async def actualizar_producto(
     producto.referencia = referencia.strip()
     producto.color = color.strip()
     producto.talla = talla.strip()
+    producto.precio = precio
     producto.precio_costo = precio_costo
     producto.stock = stock
     db.commit()
@@ -1134,3 +1159,40 @@ async def rechazar_anulacion(id: int, request: Request, db: Session = Depends(ge
         venta.estado = "COMPLETADA"
         db.commit()
     return RedirectResponse(url="/ventas/anulaciones", status_code=status.HTTP_303_SEE_OTHER)
+
+# --- MANEJADOR GLOBAL DE ERRORES AMIGABLE ---
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": exc.detail}
+        )
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "codigo": exc.status_code,
+            "detalle": exc.detail
+        },
+        status_code=exc.status_code
+    )
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Error interno del servidor."}
+        )
+        
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "codigo": 500,
+            "detalle": "Ocurrió un error inesperado en el sistema. Por favor, inténtalo de nuevo más tarde."
+        },
+        status_code=500
+    )

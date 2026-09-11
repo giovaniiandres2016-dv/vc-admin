@@ -94,7 +94,7 @@
         <h3 style="color: #60A5FA; font-size: 1.5rem; font-weight: 700; margin: 8px 0 0 0;">${{ "{:,.0f}".format(ganancia_neta) }}</h3>
     </div>
 
-    <!-- Inversión en Artículos (Reemplaza al Margen Promedio) -->
+    <!-- Inversión en Artículos (Fija por mes, no decrece al vender) -->
     <div style="background: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
         <span style="color: #F6AD55; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Inversión en Artículos</span>
         <h3 style="color: #F6AD55; font-size: 1.5rem; font-weight: 700; margin: 8px 0 0 0;">${{ "{:,.0f}".format(inversion_mes) }}</h3>
@@ -111,7 +111,7 @@
 <!-- SECCIÓN DE ACTIVIDAD COMERCIAL Y TOP CLIENTES/PRODUCTOS -->
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; align-items: start;">
 
-    <!-- Actividad Comercial del Período (Con Altura Controlada y Scroll Interno) -->
+    <!-- Actividad Comercial del Período -->
     <div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
         <h3 style="color: #FFF; font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid #1E2638; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
             <span>Actividad Comercial del Período</span>
@@ -147,7 +147,7 @@
         </div>
     </div>
 
-    <!-- Columna Derecha: Top Clientes y Top 5 Productos con Scroll Interno -->
+    <!-- Columna Derecha: Top Clientes y Top 5 Productos -->
     <div style="display: flex; flex-direction: column; gap: 20px;">
         
         <!-- Top 3 de Clientes del Mes -->
@@ -176,7 +176,7 @@
             </div>
         </div>
 
-        <!-- Panel de Top 5 Productos Más Vendidos (Con Altura Controlada y Scroll Interno) -->
+        <!-- Panel de Top 5 Productos Más Vendidos -->
         <div style="background-color: #11151C; border: 1px solid #1E2638; border-radius: 8px; padding: 20px;">
             <h3 style="color: #FFF; font-size: 0.95rem; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid #1E2638; padding-bottom: 8px;">Top 5 Productos Más Vendidos</h3>
             

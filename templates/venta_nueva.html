@@ -102,8 +102,11 @@
                         <select id="productoSelect">
                             <option value="">-- Seleccionar Producto --</option>
                             {% for p in productos %}
-                            <option value="{{ p.id }}" data-precio="{{ p.precio }}" data-nombre="{{ p.nombre }}" data-stock="{{ p.stock }}">
-                                {{ p.nombre }} - ${{ "{:,.0f}".format(p.precio).replace(',', '.') }} (Stock: {{ p.stock }})
+                            <option value="{{ p.id }}" 
+                                    data-nombre="{{ p.nombre }}" 
+                                    data-precio="{{ p.precio }}" 
+                                    data-stock="{{ p.stock }}">
+                                {{ p.nombre }} | {{ p.marca or 'N/A' }} | Talla: {{ p.talla or 'N/A' }} | Col: {{ p.color or 'N/A' }} | ${{ "{:,.0f}".format(p.precio).replace(',', '.') }} (Stock: {{ p.stock }})
                             </option>
                             {% endfor %}
                         </select>
@@ -214,6 +217,7 @@
         const id = option.value;
         const nombre = option.dataset.nombre;
         const precioBase = parseFloat(option.dataset.precio);
+        const stockMax = parseInt(option.dataset.stock);
 
         if (document.getElementById(`row-${id}`)) return;
 
@@ -237,7 +241,7 @@
                 </select>
             </td>
             <td style="padding: 10px 8px;">
-                <input type="number" name="cantidades" value="1" min="1" max="${option.dataset.stock}" oninput="calcularTotal()" style="width: 55px; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 6px; border-radius: 4px; text-align: center;">
+                <input type="number" name="cantidades" value="1" min="1" max="${stockMax}" oninput="calcularTotal()" style="width: 55px; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 6px; border-radius: 4px; text-align: center;">
             </td>
             <td style="padding: 10px 8px; color: #D4AF37; font-weight: 600;" class="subtotal-cell">${formatCOP(precioBase)}</td>
             <td style="padding: 10px 8px; text-align: right;">
@@ -255,7 +259,6 @@
         const precioBase = parseFloat(inputPrecio.dataset.precioBase);
         const precioActual = parseFloat(inputPrecio.value) || 0;
 
-        // Auto-sugerencia inteligente: Si modifican el precio por debajo del base, sugerir descuento o promoción automáticamente
         if (precioActual < precioBase && selectTipo.value === 'REGULAR') {
             selectTipo.value = 'DESCUENTO';
         } else if (precioActual === precioBase) {

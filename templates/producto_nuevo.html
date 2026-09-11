@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}ATELIER VC - {% if producto %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
+{% block title %}ÉPIKA - {% if producto %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
 
 {% block content %}
 <!-- Tom Select CSS -->
@@ -55,7 +55,7 @@
     <form action="{% if producto %}/inventario/{{ producto.id }}/actualizar{% else %}/inventario/guardar{% endif %}" method="POST">
         <div class="venta-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
             
-            <!-- CÓDIGO / SKU (Puesto al inicio para permitir autocompletado si se introduce) -->
+            <!-- CÓDIGO / SKU -->
             <div class="form-group" style="grid-column: span 2;">
                 <label style="color: #D4AF37;">CÓDIGO / SKU (Ingresa uno existente para autocompletar o déjalo vacío)</label>
                 <input type="text" id="inputCodigo" name="codigo" value="{{ producto.codigo if producto else '' }}" {% if producto %}disabled{% endif %} placeholder="Ej. ACC-BC-WALLETL">
@@ -100,7 +100,7 @@
     "Otros"
 ] %}
 {% for cat in cats %}
-<option value="{{ cat }}" {% if producto and producto.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+<option value="{{ cat }}" {% if producto and producto.categoria | trim == cat | trim %}selected{% endif %}>{{ cat }}</option>
 {% endfor %}
                 </select>
             </div>
@@ -150,7 +150,6 @@
                 <label>PRECIO DE VENTA ($ COP) *</label>
                 <input type="number" step="1" id="inputPrecio" name="precio" required 
                        value="{{ producto.precio | int if producto and producto.precio is not none else '' }}" 
-                       {% if producto %}disabled{% endif %} 
                        placeholder="Ej. 120000">
             </div>
 
@@ -172,8 +171,24 @@
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // Inicializar Buscador en Categoría
-        const tomSelectCategoria = new TomSelect("#select-categoria", {
+        const selectElement = document.getElementById("select-categoria");
+
+        {% if producto and producto.categoria %}
+        // Si la categoría del producto no está en las opciones del select, la agregamos dinámicamente
+        const categoriaActual = "{{ producto.categoria | trim }}";
+        let existeOpcion = Array.from(selectElement.options).some(opt => opt.value.trim() === categoriaActual);
+        
+        if (!existeOpcion && categoriaActual !== "") {
+            const nuevaOpt = document.createElement("option");
+            nuevaOpt.value = categoriaActual;
+            nuevaOpt.textContent = categoriaActual;
+            nuevaOpt.selected = true;
+            selectElement.appendChild(nuevaOpt);
+        }
+        {% endif %}
+
+        // Inicializar TomSelect
+        const tomSelectCategoriaInstance = new TomSelect(selectElement, {
             create: false,
             sortField: {
                 field: "text",
@@ -181,6 +196,13 @@
             },
             placeholder: "Escribe para buscar categoría..."
         });
+
+        {% if producto and producto.categoria %}
+        // Asegurar la selección de la categoría actual
+        setTimeout(() => {
+            tomSelectCategoriaInstance.setValue("{{ producto.categoria | trim }}");
+        }, 50);
+        {% endif %}
 
         // Elementos del formulario
         const inputCodigo = document.getElementById("inputCodigo");
@@ -210,8 +232,8 @@
             }
         });
 
-        // Búsqueda por código para autocompletar el formulario al salir del campo (blur)
-        if (inputCodigo) {
+        // Búsqueda por código SOLO si estamos creando un producto nuevo (input no deshabilitado)
+        if (inputCodigo && !inputCodigo.disabled) {
             inputCodigo.addEventListener("blur", async function() {
                 const codigo = this.value.trim();
                 if (!codigo) return;
@@ -221,17 +243,18 @@
                     const data = await response.json();
 
                     if (data.encontrado) {
-                        // Rellenar campos automáticamente con la data encontrada
-                        if (data.categoria) tomSelectCategoria.setValue(data.categoria);
+                        if (data.categoria) {
+                            // Si la categoría devuelta por el API tampoco está, la añadimos
+                            let optionExists = Array.from(selectElement.options).some(opt => opt.value.trim() === data.categoria.trim());
+                            if (!optionExists) {
+                                tomSelectCategoriaInstance.addOption({value: data.categoria, text: data.categoria});
+                            }
+                            tomSelectCategoriaInstance.setValue(data.categoria);
+                        }
                         marca.value = data.marca || '';
                         referencia.value = data.referencia || '';
                         color.value = data.color || '';
                         talla.value = data.talla || '';
-                        actualizarNombre();
-                        
-                        if (precio) precio.value = data.precio || '';
-                        if (precioCosto) precioCosto.value = data.precio_costo || '';
-                        if (stock) stock.value = data.stock || '';
                     }
                 } catch (error) {
                     console.error("Error al buscar el producto por código:", error);
