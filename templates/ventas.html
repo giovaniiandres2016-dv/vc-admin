@@ -84,25 +84,28 @@
                 <td style="padding: 12px 14px; font-weight: 600;">#{{ v.id }}</td>
                 <td style="padding: 12px 14px; white-space: nowrap;">{{ v.fecha_venta.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td style="padding: 12px 14px; font-weight: 500; color: #FFFFFF;">{{ v.cliente.nombre if v.cliente else 'Cliente General' }}</td>
-                <td style="padding: 12px 14px; color: #94A3B8; max-width: 250px; line-height: 1.4;">
-                    {% if v.detalles %}
-                        <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
-                            {% for d in v.detalles %}
-                            <li style="margin-bottom: 3px;">
-                                <strong style="color: #E2E8F0;">{{ d.cantidad }}x</strong> 
-                                {{ d.producto.nombre if d.producto else 'Producto' }}
-                                {% if d.producto and (d.producto.talla or d.producto.color) %}
-                                    <span style="font-size: 0.75rem; color: #94A3B8;">
-                                        ({% if d.producto.talla %}Talla: {{ d.producto.talla }}{% endif %}{% if d.producto.talla and d.producto.color %}, {% endif %}{% if d.producto.color %}Color: {{ d.producto.color }}{% endif %})
-                                    </span>
-                                {% endif %}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        {{ v.productos_texto if v.productos_texto else 'N/A' }}
-                    {% endif %}
-                </td>
+                <td style="padding: 12px 14px; color: #94A3B8; max-width: 280px; line-height: 1.4;">
+    {% if v.detalles %}
+        <ul style="margin: 0; padding-left: 15px; list-style-type: disc;">
+            {% for d in v.detalles %}
+            <li style="margin-bottom: 3px;">
+                <strong style="color: #E2E8F0;">{{ d.cantidad }}x</strong> 
+                {{ d.producto.nombre if d.producto else 'Producto' }}
+                {% if d.producto and d.producto.marca %}
+                    <span style="color: #FACC15; font-weight: 500;">{{ d.producto.marca }}</span>
+                {% endif %}
+                {% if d.producto and (d.producto.talla or d.producto.color) %}
+                    <span style="font-size: 0.75rem; color: #94A3B8;">
+                        ({% if d.producto.talla %}Talla: {{ d.producto.talla }}{% endif %}{% if d.producto.talla and d.producto.color %}, {% endif %}{% if d.producto.color %}Color: {{ d.producto.color }}{% endif %})
+                    </span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        {{ v.productos_texto if v.productos_texto else 'N/A' }}
+    {% endif %}
+</td>
                 <td style="padding: 12px 14px; font-weight: 600; color: #FFFFFF; white-space: nowrap;">${{ "{:,.0f}".format(v.total).replace(',', '.') }}</td>
                 <td style="padding: 12px 14px; white-space: nowrap;">{{ v.metodo_pago }}</td>
                 <td style="padding: 12px 14px; text-align: center; white-space: nowrap;">
