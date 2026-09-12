@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}ÉPIKA - {% if producto %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
+{% block title %}ATELIER VC - {% if producto %}Editar Producto{% else %}Nuevo Producto{% endif %}{% endblock %}
 
 {% block content %}
 <!-- Tom Select CSS -->
@@ -67,36 +67,23 @@
                 <select name="categoria" id="select-categoria" required>
                     <option value="" disabled {% if not producto or not producto.categoria %}selected{% endif %}>Seleccione una categoría...</option>
 {% set cats = [
-    "Sudadera premium",
-    "Sudadera multimarca",
-    "Pantaloneta premium",
-    "Pantaloneta beisbolera",
-    "Reloj 1.1",
-    "Loción premium",
-    "Jean premium",
-    "Jean americano",
-    "Buzo turco",
-    "Buzo promoción",
-    "Tenis originales",
-    "Tenis premium",
-    "Camiseta promoción",
-    "Camiseta gama alta",
-    "Camiseta premium",
-    "Gorra original",
-    "Gorra 1.1",
-    "Camiseta multimarca",
-    "Camiseta turca",
-    "Camisa tipo polo turca",
-    "Bodys económico",
-    "Buzo corto americano",
+    "Sudadera",
+    "Pantaloneta",
+    "Pantaloneta",
+    "Reloj",
+    "Loción",
+    "Jean",
+    "Buzo",
+    "Tenis",
+    "Camiseta",
+    "Gorra",
+    "Camisa tipo polo",
+    "Bodys",
+    "Buzo corto",
     "Vestido",
-    "Bodys americano",
-    "Conjunto dama",
-    "Conjunto hombre",
-    "Conjunto premium",
-    "Blusa económica",
-    "Blusa premium",
-    "Buzo económico",
+    "Conjunto",
+    "Billetera",
+    "Blusa",
     "Otros"
 ] %}
 {% for cat in cats %}
@@ -194,7 +181,10 @@
                 field: "text",
                 direction: "asc"
             },
-            placeholder: "Escribe para buscar categoría..."
+            placeholder: "Escribe para buscar categoría...",
+            onChange: function(value) {
+                actualizarNombre();
+            }
         });
 
         {% if producto and producto.categoria %}
@@ -215,14 +205,15 @@
         const precioCosto = document.getElementById("inputPrecioCosto");
         const stock = document.getElementById("inputStock");
 
-        // Autocompletado dinámico al escribir el Nombre del Producto
+        // Autocompletado dinámico siguiendo la regla: Categoría + Referencia + Marca + Color + Talla
         function actualizarNombre() {
-            let m = marca.value.trim();
+            let cat = selectElement.value ? selectElement.value.trim() : "";
             let r = referencia.value.trim();
+            let m = marca.value.trim();
             let c = color.value.trim();
             let t = talla.value.trim();
 
-            let partes = [m, r, c, t].filter(Boolean);
+            let partes = [cat, r, m, c, t].filter(Boolean);
             nombreFinal.value = partes.join(" ");
         }
 
@@ -255,6 +246,7 @@
                         referencia.value = data.referencia || '';
                         color.value = data.color || '';
                         talla.value = data.talla || '';
+                        actualizarNombre();
                     }
                 } catch (error) {
                     console.error("Error al buscar el producto por código:", error);

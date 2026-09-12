@@ -56,10 +56,36 @@
         <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 4px;">Directorio y fidelización de compradores</p>
     </div>
     
-    <div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <!-- Botón Exportar con Fecha -->
+        <button type="button" onclick="abrirModalExportarClientes()" style="background: rgba(212, 175, 55, 0.15); color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.4); padding: 0 16px; height: 38px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+            📊 Exportar Excel
+        </button>
+
         <a href="/clientes/nuevo" class="btn-gold" style="text-decoration: none; padding: 0 18px; height: 38px; display: inline-flex; align-items: center; justify-content: center; text-align: center; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">
             + Registrar Cliente
         </a>
+    </div>
+</div>
+
+<!-- Modal simple para rango de fechas de clientes -->
+<div id="modalExportarClientes" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: #11151C; border: 1px solid #1E2638; padding: 24px; border-radius: 8px; width: 360px; max-width: 90%;">
+        <h3 style="color: #FFF; font-size: 1.1rem; margin-bottom: 15px;">Exportar Clientes por Fecha</h3>
+        <form method="GET" action="/clientes/exportar-excel" onsubmit="handleExportarClientes(event)">
+            <div style="margin-bottom: 12px;">
+                <label style="color: #94A3B8; font-size: 0.8rem; display: block; margin-bottom: 5px;">Fecha Inicio:</label>
+                <input type="date" name="fecha_inicio" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px; border-radius: 6px;">
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="color: #94A3B8; font-size: 0.8rem; display: block; margin-bottom: 5px;">Fecha Fin:</label>
+                <input type="date" name="fecha_fin" style="width: 100%; background: #171D28; border: 1px solid #283245; color: #FFF; padding: 8px; border-radius: 6px;">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="cerrarModalExportarClientes()" style="background: #283245; color: #FFF; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Cancelar</button>
+                <button type="submit" class="btn-gold" style="padding: 8px 14px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem;">Descargar</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -101,12 +127,38 @@
         </tbody>
     </table>
 </div>
+
+<!-- Alerta Toast -->
+<div id="toastAlerta" style="display: none; position: fixed; bottom: 20px; right: 20px; background: #171D28; border: 1px solid #D4AF37; color: #FFF; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 2000; font-size: 0.85rem; align-items: center; gap: 10px;">
+    <span style="color: #4ADE80; font-size: 1.1rem;">✔</span>
+    <span id="toastMensaje">Exportación correcta</span>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script>
+    function abrirModalExportarClientes() {
+        document.getElementById('modalExportarClientes').style.display = 'flex';
+    }
+    function cerrarModalExportarClientes() {
+        document.getElementById('modalExportarClientes').style.display = 'none';
+    }
+    function mostrarToast(mensaje) {
+        const toast = document.getElementById('toastAlerta');
+        const mensajeSpan = document.getElementById('toastMensaje');
+        if (mensajeSpan) mensajeSpan.textContent = mensaje;
+        toast.style.display = 'flex';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+    function handleExportarClientes(event) {
+        cerrarModalExportarClientes();
+        mostrarToast("Exportación correcta");
+    }
+
     $(document).ready(function() {
         $('#tablaClientes').DataTable({
             "scrollY": "340px",

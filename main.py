@@ -8,6 +8,8 @@ from fastapi import FastAPI, Request, Form, Depends, status, HTTPException, Uplo
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import IntegrityError
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, extract, func
@@ -88,6 +90,18 @@ CATEGORIAS_OFICIALES = [
     "Buzo económico",
     "Otros"
 ]
+
+
+# --- FUNCIÓN DE GENERACIÓN DE NOMBRE ---
+def generar_nombre_producto(categoria: str, referencia: str, marca: str, color: str, talla: str) -> str:
+    partes = [
+        str(categoria).strip() if categoria else "",
+        str(referencia).strip() if referencia else "",
+        str(marca).strip() if marca else "",
+        str(color).strip() if color else "",
+        str(talla).strip() if talla else ""
+    ]
+    return " ".join([p for p in partes if p])
 
 
 # --- FUNCIÓN DE AUTOGENERACIÓN DE CÓDIGOS ---
@@ -185,7 +199,6 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
 
     todos_los_productos = db.query(Producto).all()
     
-    # NUEVA LÓGICA: Inversión total considerando stock actual + unidades ya vendidas (no baja al vender)
     inversion_total_inventario = 0.0
     for p in todos_los_productos:
         stock_actual = p.stock if p.stock is not None else 0
@@ -369,6 +382,59 @@ async def vista_nuevo_cliente(request: Request):
         context={"user": user, "cliente": None, "active_page": "clientes", "error": None}
     )
 
+# [CORREGIDO] RUTA DE EXPORTAR COLOCADA ANTES DE LAS RUTAS DINÁMICAS DE CLIENTES
+@app.get("/clientes/exportar-excel")
+async def exportar_clientes_excel(
+    request: Request, 
+    fecha_inicio: Optional[str] = None, 
+    fecha_fin: Optional[str] = None, 
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    query = db.query(Cliente)
+    
+    if fecha_inicio and fecha_fin:
+        try:
+            dt_inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+            dt_fin = datetime.strptime(fecha_fin, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(Cliente.creado_en >= dt_inicio, Cliente.creado_en <= dt_fin)
+        except ValueError:
+            pass
+
+    clientes_raw = query.all()
+    
+    data = []
+    for c in clientes_raw:
+        total_compras = db.query(Venta).filter(Venta.cliente_id == c.id).count()
+        data.append({
+            "Nombre": c.nombre,
+            "Documento": c.documento or 'N/A',
+            "Teléfono": c.telefono or 'N/A',
+            "Email": c.email or 'N/A',
+            "Ciudad": c.ciudad or 'N/A',
+            "Dirección": c.direccion or 'N/A',
+            "Total Compras": total_compras,
+            "Notas": c.notas or 'N/A',
+            "Fecha Registro": c.creado_en.strftime('%Y-%m-%d %H:%M') if hasattr(c, 'creado_en') and c.creado_en else 'N/A'
+        })
+    
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Reporte Clientes')
+    output.seek(0)
+    
+    filename = f"reporte_clientes_{fecha_inicio}_al_{fecha_fin}.xlsx" if fecha_inicio and fecha_fin else "reporte_clientes_general.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 @app.post("/clientes/guardar")
 async def guardar_cliente(
     request: Request,
@@ -534,6 +600,57 @@ async def nueva_venta_page(request: Request, db: Session = Depends(get_db)):
             "categorias_oficiales": CATEGORIAS_OFICIALES,
             "active_page": "ventas"
         }
+    )
+
+# RUTA: EXPORTAR VENTAS CON FECHA ESTABLECIDA
+@app.get("/ventas/exportar-excel")
+async def exportar_ventas_excel(
+    request: Request, 
+    fecha_inicio: Optional[str] = None, 
+    fecha_fin: Optional[str] = None, 
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    query = db.query(Venta)
+    
+    if fecha_inicio and fecha_fin:
+        try:
+            dt_inicio = datetime.strptime(fecha_inicio, "%Y-%m-%d")
+            dt_fin = datetime.strptime(fecha_fin, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(Venta.fecha_venta >= dt_inicio, Venta.fecha_venta <= dt_fin)
+        except ValueError:
+            pass
+
+    ventas = query.order_by(Venta.fecha_venta.desc()).all()
+    
+    data = []
+    for v in ventas:
+        productos_str = ", ".join([f"{d.cantidad}x {d.producto.nombre if d.producto else 'Prod'}" for d in v.detalles]) if v.detalles else "N/A"
+        data.append({
+            "ID Venta": v.id,
+            "Fecha Venta": v.fecha_venta.strftime('%Y-%m-%d %H:%M') if v.fecha_venta else 'N/A',
+            "Cliente": v.cliente.nombre if v.cliente else 'Cliente General',
+            "Productos": productos_str,
+            "Método Pago": v.metodo_pago,
+            "Estado": v.estado,
+            "Total Venta": v.total
+        })
+    
+    df = pd.DataFrame(data)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Reporte Ventas')
+    output.seek(0)
+    
+    filename = f"reporte_ventas_{fecha_inicio}_al_{fecha_fin}.xlsx" if fecha_inicio and fecha_fin else "reporte_ventas_general.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 @app.post("/ventas/guardar")
@@ -752,7 +869,6 @@ async def vista_nuevo_producto(request: Request):
         }
     )
 
-# --- API BUSCAR PRODUCTO POR CÓDIGO (AUTOCOMPLETADO MANUAL) ---
 @app.get("/api/inventario/por-codigo/{codigo}")
 async def buscar_producto_por_codigo(codigo: str, request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request)
@@ -779,7 +895,6 @@ async def buscar_producto_por_codigo(codigo: str, request: Request, db: Session 
 @app.post("/inventario/guardar")
 async def guardar_producto(
     request: Request,
-    nombre: str = Form(...),
     categoria: str = Form(...),
     marca: str = Form(...),
     referencia: str = Form(...),
@@ -801,6 +916,8 @@ async def guardar_producto(
             detail="Acceso denegado: No tienes permisos para crear o modificar productos en el inventario."
         )
 
+    nombre = generar_nombre_producto(categoria, referencia, marca, color, talla)
+
     codigo_limpio = codigo.strip() if codigo and codigo.strip() and codigo.strip().upper() != "S/C" else None
     producto_existente = None
 
@@ -821,6 +938,7 @@ async def guardar_producto(
         producto_existente.precio = precio
         producto_existente.precio_costo = precio_costo
         producto_existente.categoria = categoria
+        producto_existente.nombre = nombre
     else:
         if codigo_limpio:
             codigo_final = codigo_limpio
@@ -833,7 +951,7 @@ async def guardar_producto(
                 contador += 1
 
         nuevo_prod = Producto(
-            nombre=nombre.strip(),
+            nombre=nombre,
             categoria=categoria,
             marca=marca.strip(),
             referencia=referencia.strip(),
@@ -891,7 +1009,7 @@ async def importar_inventario(
 
         df.columns = [normalizar_columna(col) for col in df.columns]
         
-        required_cols = ['nombre', 'precio', 'stock']
+        required_cols = ['precio', 'stock']
         for col in required_cols:
             if col not in df.columns:
                 raise HTTPException(status_code=400, detail=f"Falta la columna obligatoria en el Excel: {col}")
@@ -899,17 +1017,17 @@ async def importar_inventario(
         codigos_en_lote = set()
 
         for _, row in df.iterrows():
-            nombre = str(row['nombre'])
             precio = float(row['precio'])
             stock = int(row['stock'])
             
-            # Conservar la categoría correcta del Excel (si viene vacía o nula, asigna 'Otros')
             categoria = str(row.get('categoria', 'Otros')) if pd.notna(row.get('categoria')) and str(row.get('categoria')).strip() != "" else 'Otros'
             marca = str(row.get('marca', '')) if pd.notna(row.get('marca')) else ''
             referencia = str(row.get('referencia', '')) if pd.notna(row.get('referencia')) else ''
             color = str(row.get('color', '')) if pd.notna(row.get('color')) else ''
             talla = str(row.get('talla', '')) if pd.notna(row.get('talla')) else ''
             precio_costo = float(row.get('precio_costo', 0.0)) if pd.notna(row.get('precio_costo')) else 0.0
+
+            nombre = generar_nombre_producto(categoria, referencia, marca, color, talla)
 
             raw_codigo = row.get('codigo')
             if pd.notna(raw_codigo) and str(raw_codigo).strip() != "" and str(raw_codigo).strip().upper() != "S/C":
@@ -929,7 +1047,11 @@ async def importar_inventario(
             if producto_existente:
                 producto_existente.nombre = nombre
                 producto_existente.precio = precio
-                producto_existente.categoria = categoria  # Actualiza/conserva categoría del Excel
+                producto_existente.categoria = categoria
+                producto_existente.marca = marca
+                producto_existente.referencia = referencia
+                producto_existente.color = color
+                producto_existente.talla = talla
                 producto_existente.stock += stock
             else:
                 nuevo_prod = Producto(
@@ -1058,7 +1180,6 @@ async def vista_editar_producto(producto_id: int, request: Request, db: Session 
 async def actualizar_producto(
     producto_id: int,
     request: Request,
-    nombre: str = Form(...),
     categoria: str = Form(...),
     marca: str = Form(...),
     referencia: str = Form(...),
@@ -1090,7 +1211,7 @@ async def actualizar_producto(
             }
         )
 
-    producto.nombre = nombre.strip()
+    producto.nombre = generar_nombre_producto(categoria, referencia, marca, color, talla)
     producto.categoria = categoria
     producto.marca = marca.strip()
     producto.referencia = referencia.strip()
@@ -1160,7 +1281,41 @@ async def rechazar_anulacion(id: int, request: Request, db: Session = Depends(ge
         db.commit()
     return RedirectResponse(url="/ventas/anulaciones", status_code=status.HTTP_303_SEE_OTHER)
 
-# --- MANEJADOR GLOBAL DE ERRORES AMIGABLE ---
+
+# --- MANEJADORES GLOBALES DE ERRORES ---
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(status_code=422, content={"error": "Datos inválidos en el formulario."})
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "codigo": 422,
+            "detalle": "Por favor verifica los datos ingresados. Hay campos obligatorios vacíos o con formato incorrecto."
+        },
+        status_code=422
+    )
+
+@app.exception_handler(IntegrityError)
+async def sqlalchemy_integrity_handler(request: Request, exc: IntegrityError):
+    mensaje_amigable = "Ya existe un registro en el sistema con estos mismos datos (por ejemplo, el número de documento o código ya se encuentra registrado)."
+    
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(status_code=400, content={"error": mensaje_amigable})
+        
+    return templates.TemplateResponse(
+        request=request,
+        name="error.html",
+        context={
+            "codigo": 400,
+            "detalle": mensaje_amigable
+        },
+        status_code=400
+    )
+
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
     if request.url.path.startswith("/api/"):
@@ -1184,7 +1339,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
     if request.url.path.startswith("/api/"):
         return JSONResponse(
             status_code=500,
-            content={"error": "Error interno del servidor."}
+            content={"error": str(exc)}
         )
         
     return templates.TemplateResponse(
@@ -1192,7 +1347,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
         name="error.html",
         context={
             "codigo": 500,
-            "detalle": "Ocurrió un error inesperado en el sistema. Por favor, inténtalo de nuevo más tarde."
+            "detalle": f"Ocurrió un error inesperado en el sistema: {str(exc)}"
         },
         status_code=500
     )
