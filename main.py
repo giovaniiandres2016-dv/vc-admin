@@ -27,8 +27,8 @@ os.makedirs("templates", exist_ok=True)
 # Crear tablas en la base de datos
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="ÉPIKA")
-app.add_middleware(SessionMiddleware, secret_key="epika_admin_secret_key_clean")
+app = FastAPI(title="VC Admin")
+app.add_middleware(SessionMiddleware, secret_key="vc_admin_secret_key_clean")
 
 # --- MIDDLEWARE ANTI-CACHÉ (Evita navegación hacia atrás post-logout) ---
 class NoCacheMiddleware(BaseHTTPMiddleware):
@@ -56,7 +56,7 @@ def get_db():
         db.close()
 
 
-# --- LISTA OFICIAL DE CATEGORÍAS ÉPIKA ---
+# --- LISTA OFICIAL DE CATEGORÍAS VC ADMIN ---
 CATEGORIAS_OFICIALES = [
     "Sudadera premium",
     "Sudadera multimarca",
@@ -126,12 +126,12 @@ def init_users():
     
     if not db.query(Usuario).filter(Usuario.nombre == "admin").first():
         hashed_admin = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        admin = Usuario(nombre="admin", email="admin@epika.com", password_hash=hashed_admin, rol="ADMIN", activo=True)
+        admin = Usuario(nombre="admin", email="admin@vcadmin.com", password_hash=hashed_admin, rol="ADMIN", activo=True)
         db.add(admin)
     
     if not db.query(Usuario).filter(Usuario.nombre == "colaborador").first():
         hashed_colab = bcrypt.hashpw("colab123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        colab = Usuario(nombre="colaborador", email="colab@epika.com", password_hash=hashed_colab, rol="COLABORADOR", activo=True)
+        colab = Usuario(nombre="colaborador", email="colab@vcadmin.com", password_hash=hashed_colab, rol="COLABORADOR", activo=True)
         db.add(colab)
 
     db.commit()
@@ -193,7 +193,7 @@ async def home(request: Request, mes: Optional[str] = None, db: Session = Depend
         for detalle in venta.detalles:
             prod = db.query(Producto).filter(Producto.id == detalle.producto_id).first()
             if prod:
-                costo_total_vendido += (prod.precio_costo * detalle.cantidad)
+                costo_total_vendido += ((prod.precio_costo or 0.0) * detalle.cantidad)
                 
     ganancia_neta = ingresos_totales - costo_total_vendido
 
@@ -382,7 +382,6 @@ async def vista_nuevo_cliente(request: Request):
         context={"user": user, "cliente": None, "active_page": "clientes", "error": None}
     )
 
-# [CORREGIDO] RUTA DE EXPORTAR COLOCADA ANTES DE LAS RUTAS DINÁMICAS DE CLIENTES
 @app.get("/clientes/exportar-excel")
 async def exportar_clientes_excel(
     request: Request, 
@@ -602,7 +601,6 @@ async def nueva_venta_page(request: Request, db: Session = Depends(get_db)):
         }
     )
 
-# RUTA: EXPORTAR VENTAS CON FECHA ESTABLECIDA
 @app.get("/ventas/exportar-excel")
 async def exportar_ventas_excel(
     request: Request, 
@@ -1131,6 +1129,9 @@ async def exportar_etiquetas_excel(
             "Código de Producto": p.codigo,
             "Nombre del Producto": p.nombre,
             "Categoría": p.categoria or "General",
+            "Marca": p.marca or "N/A",
+            "Color": p.color or "N/A",
+            "Talla": p.talla or "N/A",
             "Referencia": p.referencia or "N/A",
             "Cantidad": cantidad,
             "Precio de Compra Unitario": precio_costo,
