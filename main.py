@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from datetime import datetime
 from typing import List, Optional
@@ -1123,6 +1124,7 @@ async def exportar_etiquetas_excel(
 
         cantidad = p.stock if p.stock is not None else 0
         precio_costo = p.precio_costo if p.precio_costo is not None else 0.0
+        precio_venta = p.precio if p.precio is not None else 0.0
         inversion_total = cantidad * precio_costo
 
         data.append({
@@ -1135,6 +1137,7 @@ async def exportar_etiquetas_excel(
             "Referencia": p.referencia or "N/A",
             "Cantidad": cantidad,
             "Precio de Compra Unitario": precio_costo,
+            "Precio de Venta": precio_venta,
             "Inversión Total": inversion_total
         })
 
@@ -1279,7 +1282,7 @@ async def rechazar_anulacion(id: int, request: Request, db: Session = Depends(ge
     venta = db.query(Venta).filter(Venta.id == id).first()
     if venta and venta.estado == "SOLICITADA_ANULACION":
         venta.estado = "COMPLETADA"
-        db.commit()
+    db.commit()
     return RedirectResponse(url="/ventas/anulaciones", status_code=status.HTTP_303_SEE_OTHER)
 
 
